@@ -1,0 +1,375 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+img, video, canvas {
+    overflow: hidden !important;
+}
+
+
+body, html {
+    height: 100%;
+    margin: 0;
+    font-family: 'Courier New', monospace; /* Apply the pixelated font */
+    background-color: #1e1e1e;
+}
+
+img, video, canvas {
+    overflow: hidden !important;
+}
+
+h3 {
+    margin-top: 50px;
+}
+
+#combined-chart {
+    height: 100vh;
+    border: 1vh;
+    background-color: #1e1e1e; /* Dark background for the chart */
+}
+
+#right-panel {
+    width: 300px;
+    transition: width 0.3s ease;
+    overflow: hidden !important;
+    position: relative;
+    background-color: #1e1e1e; /* Dark background for the panel */
+    color: #FFFFFF; /* Light text color for contrast */
+    border-left: 1px solid #333333; /* Subtle border to separate from the chart */
+}
+
+#right-panel.collapsed {
+    width: 50px; /* Width of the collapsed panel */
+    transition: width 0.3s ease; /* Ensure transition is applied when collapsing */
+    overflow: hidden!important; /* Hide overflow content */
+    background-color: #1e1e1e;
+}
+
+#right-panel.collapsed #toggle-button {
+    display: block; /* Ensure toggle button is visible */
+}
+
+#right-panel.collapsed > *:not(#toggle-button) {
+    display: none; /* Hide all children except the toggle button */
+}
+
+#toggle-button {
+    background-color: #2b2b2b;
+    color: white;
+    border: 1px solid #4e4e4e;
+    border-radius: 3px;
+    cursor: pointer;
+    padding: 5px 10px;
+    margin-bottom: 10px;
+    position: fixed; /* Make the button fixed */
+    top: 10px; /* Position from the top */
+    right: 10px; /* Position from the right */
+    z-index: 1000; /* Ensure it stays above other elements */
+    width: auto; /* Adjust width to fit content */
+    white-space: nowrap; /* Prevent text from wrapping */
+}
+
+#toggle-button:hover {
+    background-color: #3d3d3d;
+}
+
+
+
+
+html.A {
+    color: #4CAF50; /* Highlighted color for market links */
+    text-decoration: none;
+    font-size: 14px;
+}
+
+html.A:hover {
+    text-decoration: underline; /* Underline on hover */
+}
+
+button {
+    background-color: #333333; /* Dark button background */
+    color: #FFFFFF; /* Light button text */
+    border: 1px solid #444444; /* Subtle border */
+    padding: 5px 10px;
+    margin-bottom: 5px;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+button:hover {
+    background-color: #555555; /* Slightly lighter on hover */
+}
+
+dcc.Graph, dcc.Checklist  {
+    background-color: #1e1e1e; /* Consistent dark background */
+    color: #FFFFFF; /* Light text color */
+}
+
+.collapsed-header {
+    background-color: #2e2e2e;
+    border-bottom: 1px solid #333;
+    color: #FFF;
+    padding: 10px;
+    cursor: pointer;
+    text-align: center;
+}
+
+/* Style the entire DatePickerRange container */
+#date-picker-range {
+    background-color: #1e1e1e;
+    color: white;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    border-radius: 5px;
+}
+
+/* Style input boxes inside DatePickerRange */
+#date-picker-range input {
+    background-color: #1e1e1e;
+    color: white;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    border: none;
+    outline: none;
+    text-align: center;
+}
+
+/* Style the arrow (SVG) inside DatePickerRange */
+.DateRangePickerInput {
+    color: white;
+    background-color: #1e1e1e;
+
+}
+
+/* Style the calendar container */
+.CalendarMonth {
+    background-color: #1e1e1e;
+    color: white;
+}
+
+.CalendarMonthGrid {
+    background-color: #1e1e1e;
+    background: #1e1e1e;
+
+    }
+
+.CalendarMonth_table {
+    margin-top: 10px;
+    margin-left: 0px;
+}
+
+/* Style the calendar caption (month name) */
+.CalendarMonth_caption {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 12px;
+    text-align: center;
+    color: white;
+}
+
+/* Style individual day cells */
+.CalendarDay {
+    background-color: #1e1e1e;
+    color: white;
+    font-size: 8px;
+
+}
+
+.DayPicker {
+    background: #1e1e1e;
+    /* border: 1px solid white; */
+    border-right: 1px solid white;
+    padding: 0px;
+    margin: 1px;
+}
+
+.DayPicker_weekHeader_li {
+    background-color: #1e1e1e;
+    color: white;
+    font-size: 10px;
+}
+
+.DayPickerNavigation_svg_horizontal {
+    color: black;
+}
+
+.DayPickerNavigation_button:hover {
+    background-color: Salmon;
+    color: black;
+}
+
+/* Highlight hovered days */
+.CalendarDay:hover {
+    background-color: white;
+    color: black;
+    cursor: pointer;
+}
+
+/* Style selected start and end dates */
+.CalendarDay__selected_start,
+.CalendarDay__selected_end {
+    background-color: CornflowerBlue;
+    border: none;
+    color: Salmon;
+    font-weight: bold;
+}
+
+.CalendarDay {
+    border-color: white;
+}
+
+/* Style dates in the selected range */
+.CalendarDay__selected_span {
+    background-color: CornflowerBlue;
+    color: white;
+}
+
+
+/* Style the arrow buttons in the calendar */
+.CalendarMonthNavigation_button {
+    background-color: #1e1e1e;
+    color: white;
+    cursor: pointer;
+}
+
+.CalendarMonthNavigation_button:hover {
+    background-color: CornflowerBlue;
+    color: black;
+}
+
+/* Style for disabled days */
+.CalendarDay__blocked_out_of_range {
+    color: #555;
+    cursor: not-allowed;
+}
+
+/* Hide the button with a question mark */
+.DayPickerKeyboardShortcuts_buttonReset {
+    display: none !important;
+}
+
+
+/* Ensure the dropdown has a dark background on page load */
+.dropdown-menu-1 {
+    background-color: #1e1e1e !important; /* Dark background color */
+    color: #00FF00 !important; /* Bright green text color */
+    border: 1px solid #333; /* Border for terminal-like appearance */
+    font-family: 'Courier New', monospace; /* Vintage computer font */
+    font-size: 14px; /* Font size */
+    padding: 5px; /* Padding inside the dropdown */
+    width: 100%; /* Full width */
+}
+
+/* Control background color and text inside the dropdown input */
+.dropdown-menu-1 .Select-control {
+    background-color: #1e1e1e !important; /* Force dark background */
+    color: #00FF00 !important; /* Text color for the selected value */
+    border-color: #333 !important; /* Border color for the dropdown */
+}
+
+/* Ensure that the selected value is visible */
+.dropdown-menu-1 .Select-value-label {
+    color: #00FF00 !important; /* Bright green text color for the selected value */
+}
+
+/* Ensure the dropdown options have a dark background when open */
+.dropdown-menu-1 .Select-menu-outer {
+    background-color: #1e1e1e !important; /* Background color for options */
+    border: 1px solid #333; /* Add border for terminal-like appearance */
+}
+
+/* Style each option in the dropdown */
+.dropdown-menu-1 .Select-menu-option {
+    background-color: #1e1e1e !important; /* Ensure dark background for options */
+    color: #00FF00 !important; /* Bright green text color */
+}
+
+/* Styling for the selected or focused dropdown option */
+.dropdown-menu-1 .Select-menu-option--is-selected,
+.dropdown-menu-1 .Select-menu-option--is-focused {
+    background-color: #333 !important; /* Highlight selected/focused option */
+    color: #FFFFFF !important; /* Light text for selected/focused option */
+}
+
+/* Ensure the arrow zone matches the style */
+.dropdown-menu-1 .Select-arrow-zone {
+    color: #00FF00 !important; /* Color for dropdown arrow */
+}
+
+.above-chart-button {
+    background-color: #2b2b2b;
+    color: white;
+    border: 1px solid #4e4e4e;
+    border-radius: 3px;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 14px;
+    font-family: 'Press Start 2P', monospace;
+}
+.above-chart-button:hover {
+    background-color: #3d3d3d;
+}
+
+/* Style each label by targeting the checklist items */
+/* CornflowerBlue and Salmon */
+#years-checklist label:nth-child(1) {
+    color: #6495ED;
+}
+#years-checklist label:nth-child(2) {
+    color: #FA8072;
+}
+
+.dropdown-menu-direction .Select-control {
+    background-color: #333;
+    color: white;
+    border: 1px solid white;
+    border-radius: 3px;
+    font-weight: bold; /* Thicker font */
+    font-size: 16px; /* Adjust font size if needed */
+    padding: 5px 10px;
+    width: 120px; /* Adjusted width to fit "Long" and "Short" comfortably */
+    white-space: nowrap;
+}
+
+.dropdown-menu-direction .Select-arrow-zone {
+    color: white;
+    display: none;
+}
+
+.dropdown-menu-direction .Select-option {
+    background-color: #333;
+    color: white;
+}
+
+.dropdown-menu-direction .Select-option:hover {
+    background-color: #444;
+}
+
+.dropdown-menu-direction .Select-menu-outer {
+    border: 1px solid white;
+    background-color: #333;
+    color: white;
+}
+
+.dropdown-menu-direction .Select-value-label {
+    font-size: 10px; /* Adjust text size */
+    color: white !important;
+    text-align: center; /* Center text */
+    padding: 0; /* Remove extra padding if needed */
+}
+
+/* Remove the dropdown arrow */
+.dropdown-menu-direction .dropdown-indicator {
+    display: none; /* Hide the arrow */
+}
+
+.dropdown-menu-direction .Select-control {
+    border: 1px solid white !important; /* Add white border */
+    box-shadow: none !important; /* Remove default shadow */
+    background-color: #333 !important; /* Match background color */
+    color: white;
+}
+
+.dash-table-tooltip {
+    backgroundColor: #1e1e1e,
+    color: 'white'
+}
