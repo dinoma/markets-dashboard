@@ -162,7 +162,7 @@ def create_analysis_section():
                                                       editable=False,
                                                       cell_selectable=False,
                                                       columns=[
-                                                          {'name': 'Year', 'id': 'Year'},
+                                                          {'name': 'Year', 'id': 'year'},
                                                           {'name': 'Max Drawdown (Points)',
                                                            'id': 'Max Drawdown (Points)'},
                                                           {'name': 'Max Drawdown (%)', 'id': 'Max Drawdown (%)'},
@@ -258,7 +258,7 @@ def create_day_trading_stats_section():
                             editable=False,
                             cell_selectable=False,
                             columns=[
-                                {'name': 'Year', 'id': 'Year'},
+                                {'name': 'Year', 'id': 'year'},
                                 {'name': 'Total Days', 'id': 'Total Days'},
                                 {'name': 'D UP', 'id': 'D UP'},
                                 {'name': 'D UP %', 'id': 'D UP %'},
@@ -343,7 +343,7 @@ def create_day_trading_stats_weekday_section():
                             editable=False,
                             cell_selectable=False,
                             columns=[
-                                {'name': 'Weekday', 'id': 'Weekday'},
+                                {'name': 'Weekday', 'id': 'weekday'},
                                 {'name': 'Total Days', 'id': 'Total Days'},
                                 {'name': 'D UP', 'id': 'D UP'},
                                 {'name': 'D UP %', 'id': 'D UP %'},
@@ -427,7 +427,7 @@ def create_day_trading_stats_1_section():
                             editable=False,
                             cell_selectable=False,
                             columns=[
-                                {'name': 'Year', 'id': 'Year'},
+                                {'name': 'Year', 'id': 'year'},
                                 {'name': 'Total Days', 'id': 'Total Days'},
                                 {'name': 'CaPD-H', 'id': 'CaPD-H'},
                                 {'name': 'CaPD-H %', 'id': 'CaPD-H %'},
@@ -507,7 +507,7 @@ def create_day_trading_stats_1_weekday_section():
                             editable=False,
                             cell_selectable=False,
                             columns=[
-                                {'name': 'Weekday', 'id': 'Weekday'},
+                                {'name': 'Weekday', 'id': 'weekday'},
                                 {'name': 'Total Days', 'id': 'Total Days'},
                                 {'name': 'CaPD-H', 'id': 'CaPD-H'},
                                 {'name': 'CaPD-H %', 'id': 'CaPD-H %'},

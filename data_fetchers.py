@@ -1,16 +1,16 @@
 # data_fetchers.py
 
 import os
-import sqlite3
 import pandas as pd
 from scripts.config import db_path_str
 from datetime import timedelta
 from dateutil import parser
 from functools import lru_cache
+import psycopg2
 
 
 # Set the database path
-db_path = os.getenv('DATABASE_PATH', db_path_str)
+db_path = os.environ[db_path_str]
 
 @lru_cache(maxsize=10)
 def fetch_ohlc_data_cached(market, year):
@@ -54,7 +54,7 @@ def clean_ohlc_data(df):
     Returns:
         pd.DataFrame: Cleaned DataFrame with commas removed from numeric columns.
     """
-    ohlc_columns = ['Open', 'High', 'Low', 'Close']
+    ohlc_columns = ['open', 'high', 'low', 'close']
 
     for col in ohlc_columns:
         df[col] = df[col].astype(str).str.replace(',', '').astype(float)
@@ -78,7 +78,7 @@ class BaseDataFetcher:
         Returns:
             pd.DataFrame: DataFrame containing the fetched data.
         """
-        conn = sqlite3.connect(db_path)
+        conn = psycopg2.connect(db_path, sslmode='require')
         try:
             df = pd.read_sql(query, conn, params=params)
         except Exception as e:
@@ -105,27 +105,27 @@ class SeasonalDataFetcher(BaseDataFetcher):
             current_year (int): The year for which to align the Day_of_Year to Date.
 
         Returns:
-            pd.DataFrame: DataFrame containing the seasonal data with an additional 'Date' column.
+            pd.DataFrame: DataFrame containing the seasonal data with an additional 'date' column.
         """
         table_name = f"{market.lower().replace(' ', '_')}_ohlc_seasonality_{years}_years" # f"{format_market_name(market)}_seasonality_{years}_years"
-        query = f"SELECT * FROM {table_name} ORDER BY Day_of_Year ASC"
+        query = f"SELECT * FROM {table_name} ORDER BY day_of_year ASC"
         df = SeasonalDataFetcher.fetch_data(query)
 
         if not df.empty:
             # Ensure Day_of_Year is treated as an integer
-            df['Day_of_Year'] = df['Day_of_Year'].astype(int)
+            df['day_of_year'] = df['day_of_year'].astype(int)
 
             # Creating base date string for January 1st of the current year
             base_date = parser.parse(f"{current_year}-01-01")
 
             # Convert Day_of_Year to actual dates within the current year
-            df['Date'] = df['Day_of_Year'].apply(lambda x: (base_date + timedelta(days=x - 1)).strftime("%Y-%m-%d"))
+            df['date'] = df['day_of_year'].apply(lambda x: (base_date + timedelta(days=x - 1)).strftime("%Y-%m-%d"))
 
-            # Convert 'Date' column to datetime format explicitly
-            df['Date'] = pd.to_datetime(df['Date'], format="%Y-%m-%d")
+            # Convert 'date' column to datetime format explicitly
+            df['date'] = pd.to_datetime(df['date'], format="%Y-%m-%d")
 
             # Sort by the new Date column
-            df.sort_values(by='Date', inplace=True)
+            df.sort_values(by='date', inplace=True)
 
         return df
 
@@ -140,7 +140,7 @@ class OHLCDataFetcher(BaseDataFetcher):
         table_name = f"{market.lower().replace(' ', '_')}_ohlc"
         print(f"Fetching OHLC from table: {table_name} for year: {year}")
 
-        query = f"SELECT * FROM {table_name} WHERE Date BETWEEN ? AND ?"
+        query = f"SELECT * FROM {table_name} WHERE Date BETWEEN %s AND %s"
         params = (f'{year}-01-01 00:00:00', f'{year}-12-31 23:59:59')
         print(f"Running query: {query} with params: {params}")
 
@@ -149,8 +149,8 @@ class OHLCDataFetcher(BaseDataFetcher):
         if df.empty:
             print(f"No data found for {market} in {year}")
         else:
-            df['Date'] = pd.to_datetime(df['Date'], format="%Y-%m-%d %H:%M:%S")
-            df['Day_of_Year'] = df['Date'].dt.dayofyear
+            df['date'] = pd.to_datetime(df['date'], format="%Y-%m-%d %H:%M:%S")
+            df['day_of_year'] = df['date'].dt.dayofyear
             print(f"Fetched data for {year}: {df.head()}")
         df = clean_ohlc_data(df)
 
@@ -172,15 +172,15 @@ class OHLCDataFetcher(BaseDataFetcher):
         table_name = f"{market.lower().replace(' ', '_')}_ohlc"
         print(f"Fetching OHLC from table: {table_name} for date range: {start_date} to {end_date}")
 
-        query = f"SELECT * FROM {table_name} WHERE Date BETWEEN ? AND ?"
+        query = f"SELECT * FROM {table_name} WHERE Date BETWEEN %s AND %s"
         params = (f'{start_date} 00:00:00', f'{end_date} 23:59:59')
 
         df = OHLCDataFetcher.fetch_data(query, params)
 
         if not df.empty:
-            # Parse the 'Date' column with the appropriate format
-            df['Date'] = pd.to_datetime(df['Date'], format="%Y-%m-%d %H:%M:%S")
-            df['Day_of_Year'] = df['Date'].dt.dayofyear
+            # Parse the 'date' column with the appropriate format
+            df['date'] = pd.to_datetime(df['date'], format="%Y-%m-%d %H:%M:%S")
+            df['day_of_year'] = df['date'].dt.dayofyear
 
         df = clean_ohlc_data(df)
         return df
@@ -213,14 +213,14 @@ class OpenInterestDataFetcher(BaseDataFetcher):
         query = f"""
         SELECT {columns}
         FROM {table_name}
-        WHERE report_date_as_yyyy_mm_dd BETWEEN ? AND ?
+        WHERE report_date_as_yyyy_mm_dd BETWEEN %s AND %s
         """
         params = (f'{year}-01-01', f'{year}-12-31')
         df = OpenInterestDataFetcher.fetch_data(query, params)
         if not df.empty:
             df['report_date_as_yyyy_mm_dd'] = pd.to_datetime(df['report_date_as_yyyy_mm_dd'], format="%Y-%m-%d %H:%M:%S")
-            df['Date'] = df['report_date_as_yyyy_mm_dd']
-            df.sort_values(by='Date', inplace=True)
+            df['date'] = df['report_date_as_yyyy_mm_dd']
+            df.sort_values(by='date', inplace=True)
         return df
 
 
@@ -296,7 +296,7 @@ class OpenInterestPercentagesFetcher(BaseDataFetcher):
         query = f"""
         SELECT {columns}
         FROM {table_name}
-        WHERE report_date_as_yyyy_mm_dd BETWEEN ? AND ?
+        WHERE report_date_as_yyyy_mm_dd BETWEEN %s AND %s
         """
         params = (f'{year}-01-01', f'{year}-12-31')
         df = OpenInterestPercentagesFetcher.fetch_data(query, params)
@@ -309,8 +309,8 @@ class OpenInterestPercentagesFetcher(BaseDataFetcher):
             for col in numeric_columns:
                 df[col] = pd.to_numeric(df[col], errors='coerce')
 
-            df['Date'] = df['report_date_as_yyyy_mm_dd']
-            df.sort_values(by='Date', inplace=True)
+            df['date'] = df['report_date_as_yyyy_mm_dd']
+            df.sort_values(by='date', inplace=True)
 
         return df
 
@@ -381,7 +381,7 @@ class PositionsChangeDataFetcher(BaseDataFetcher):
         query = f"""
         SELECT {columns}
         FROM {table_name}
-        WHERE report_date_as_yyyy_mm_dd BETWEEN ? AND ?
+        WHERE report_date_as_yyyy_mm_dd BETWEEN %s AND %s
         """
         params = (f'{year}-01-01', f'{year}-12-31')
         df = PositionsChangeDataFetcher.fetch_data(query, params)
@@ -393,8 +393,8 @@ class PositionsChangeDataFetcher(BaseDataFetcher):
             for col in numeric_columns:
                 df[col] = pd.to_numeric(df[col], errors='coerce')
 
-            df['Date'] = df['report_date_as_yyyy_mm_dd']
-            df.sort_values(by='Date', inplace=True)
+            df['date'] = df['report_date_as_yyyy_mm_dd']
+            df.sort_values(by='date', inplace=True)
         return df
 
 class NetPositionsDataFetcher(BaseDataFetcher):
@@ -456,7 +456,7 @@ class NetPositionsDataFetcher(BaseDataFetcher):
         query = f"""
         SELECT {columns}
         FROM {table_name}
-        WHERE report_date_as_yyyy_mm_dd BETWEEN ? AND ?
+        WHERE report_date_as_yyyy_mm_dd BETWEEN %s AND %s
         """
         params = (f'{year}-01-01', f'{year}-12-31')
         df = NetPositionsDataFetcher.fetch_data(query, params)
@@ -469,8 +469,8 @@ class NetPositionsDataFetcher(BaseDataFetcher):
             for col in numeric_columns:
                 df[col] = pd.to_numeric(df[col], errors='coerce')
 
-            df['Date'] = df['report_date_as_yyyy_mm_dd']
-            df.sort_values(by='Date', inplace=True)
+            df['date'] = df['report_date_as_yyyy_mm_dd']
+            df.sort_values(by='date', inplace=True)
         return df
 
 
@@ -531,7 +531,7 @@ class PositionsChangeNetDataFetcher(BaseDataFetcher):
         query = f"""
         SELECT {columns}
         FROM {table_name}
-        WHERE report_date_as_yyyy_mm_dd BETWEEN ? AND ?
+        WHERE report_date_as_yyyy_mm_dd BETWEEN %s AND %s
         """
         params = (f'{year}-01-01', f'{year}-12-31')
         df = PositionsChangeNetDataFetcher.fetch_data(query, params)
@@ -544,8 +544,8 @@ class PositionsChangeNetDataFetcher(BaseDataFetcher):
             for col in numeric_columns:
                 df[col] = pd.to_numeric(df[col], errors='coerce')
 
-            df['Date'] = df['report_date_as_yyyy_mm_dd']
-            df.sort_values(by='Date', inplace=True)
+            df['date'] = df['report_date_as_yyyy_mm_dd']
+            df.sort_values(by='date', inplace=True)
         return df
 
 class Index26WDataFetcher(BaseDataFetcher):
@@ -604,7 +604,7 @@ class Index26WDataFetcher(BaseDataFetcher):
         query = f"""
         SELECT {columns}
         FROM {table_name}
-        WHERE report_date_as_yyyy_mm_dd BETWEEN ? AND ?
+        WHERE report_date_as_yyyy_mm_dd BETWEEN %s AND %s
         """
         params = (f'{year}-01-01', f'{year}-12-31')
         df = Index26WDataFetcher.fetch_data(query, params)
@@ -616,8 +616,8 @@ class Index26WDataFetcher(BaseDataFetcher):
             for col in numeric_columns:
                 df[col] = pd.to_numeric(df[col], errors='coerce')
 
-            df['Date'] = df['report_date_as_yyyy_mm_dd']
-            df.sort_values(by='Date', inplace=True)
+            df['date'] = df['report_date_as_yyyy_mm_dd']
+            df.sort_values(by='date', inplace=True)
         return df
 
 

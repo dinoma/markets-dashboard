@@ -1,5 +1,5 @@
 # config.py
-db_path_str = 'app/data/markets_data.db'
+db_path_str = 'DATABASE_URL'
 
 COLORS = {
     'open_interest': 'orange',

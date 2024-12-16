@@ -279,13 +279,13 @@ def calculate_stop_loss_return(yearly_data, optimal_results, direction):
     stop_loss_returns = []
     stop_loss_or_take_profit = False
 
-    first_open = yearly_data.iloc[0]['Open']
+    first_open = yearly_data.iloc[0]['open']
 
     # Ensure first_open is a float
     try:
         first_open = float(first_open)
     except ValueError:
-        print(f"Error: 'Open' value {first_open} is not a valid float.")
+        print(f"Error: 'open' value {first_open} is not a valid float.")
 
     # Calculate the stop-loss and take-profit prices
     if direction == 'Long':
@@ -302,26 +302,26 @@ def calculate_stop_loss_return(yearly_data, optimal_results, direction):
             continue
 
         if direction == 'Long':
-            if row['Low'] <= stop_loss_price:  # Stop-loss hit
-                daily_return = (stop_loss_price - row['Open']) / row['Open'] * 100
-            elif row['High'] >= take_profit_price:  # Take-profit hit
-                daily_return = (take_profit_price - row['Open']) / row['Open'] * 100
+            if row['low'] <= stop_loss_price:  # Stop-loss hit
+                daily_return = (stop_loss_price - row['open']) / row['open'] * 100
+            elif row['high'] >= take_profit_price:  # Take-profit hit
+                daily_return = (take_profit_price - row['open']) / row['open'] * 100
             else:  # Neither hit, close at the end of the day
-                daily_return = row['Close_Close_Pct_Change']
+                daily_return = row['close_close_pct_change']
         else:  # Short direction
-            if row['High'] >= stop_loss_price:  # Stop-loss hit
-                daily_return = (row['Open'] - stop_loss_price) / row['Open'] * 100
-            elif row['Low'] <= take_profit_price:  # Take-profit hit
-                daily_return = (row['Open'] - take_profit_price) / row['Open'] * 100
+            if row['high'] >= stop_loss_price:  # Stop-loss hit
+                daily_return = (row['open'] - stop_loss_price) / row['open'] * 100
+            elif row['low'] <= take_profit_price:  # Take-profit hit
+                daily_return = (row['open'] - take_profit_price) / row['open'] * 100
             else:  # Neither hit, close at the end of the day
-                daily_return = row['Close_Close_Pct_Change'] * (-1)
+                daily_return = row['close_close_pct_change'] * (-1)
 
         # Append the return for this trade
         stop_loss_returns.append(daily_return)
 
         # Break out of the loop for this trade if stop-loss or take-profit is hit
-        if (direction == 'Long' and (row['Low'] <= stop_loss_price or row['High'] >= take_profit_price)) or \
-                (direction == 'Short' and (row['High'] >= stop_loss_price or row['Low'] <= take_profit_price)):
+        if (direction == 'Long' and (row['low'] <= stop_loss_price or row['high'] >= take_profit_price)) or \
+                (direction == 'Short' and (row['high'] >= stop_loss_price or row['low'] <= take_profit_price)):
             stop_loss_or_take_profit = True
 
     # Return the series of stop-loss returns
@@ -359,12 +359,12 @@ def calculate_max_drawdown(df, open_price, direction):
     Calculate the maximum drawdown in points and percentage.
     """
     if direction == 'Long':
-        # Convert 'Low' column to numeric and find the minimum price
-        min_price = pd.to_numeric(df['Low'], errors='coerce').min()
+        # Convert 'low' column to numeric and find the minimum price
+        min_price = pd.to_numeric(df['low'], errors='coerce').min()
         drawdown_points = open_price - min_price
     else:
-        # Convert 'High' column to numeric and find the maximum price
-        max_price = pd.to_numeric(df['High'], errors='coerce').max()
+        # Convert 'high' column to numeric and find the maximum price
+        max_price = pd.to_numeric(df['high'], errors='coerce').max()
         drawdown_points = max_price - open_price
 
     # Ensure open_price is numeric
@@ -379,12 +379,12 @@ def calculate_max_gain(df, open_price, direction):
     Calculate the maximum gain in points and percentage.
     """
     if direction == 'Long':
-        # Convert 'High' column to numeric and find the maximum price
-        max_price = pd.to_numeric(df['High'], errors='coerce').max()
+        # Convert 'high' column to numeric and find the maximum price
+        max_price = pd.to_numeric(df['high'], errors='coerce').max()
         gain_points = max_price - open_price
     else:
-        # Convert 'Low' column to numeric and find the minimum price
-        min_price = pd.to_numeric(df['Low'], errors='coerce').min()
+        # Convert 'low' column to numeric and find the minimum price
+        min_price = pd.to_numeric(df['low'], errors='coerce').min()
         gain_points = open_price - min_price
 
     # Ensure open_price is numeric
@@ -524,76 +524,76 @@ def compute_day_trading_stats(df):
     # Overall regular stats
     stats = {
         'Total Days': total_days,
-        'D UP': (df['Close'] > df['Open']).sum(),
-        'D UP %': round((df['Close'] > df['Open']).sum() / total_days * 100, 2),
-        'D DN': (df['Close'] < df['Open']).sum(),
-        'D DN %': round((df['Close'] < df['Open']).sum() / total_days * 100, 2),
-        'PD-H': (df['Day_Type_1'] == 'PD-H').sum(),
-        'PD-H %': round((df['Day_Type_1'] == 'PD-H').sum() / total_days * 100, 2),
-        'PD-L': (df['Day_Type_1'] == 'PD-L').sum(),
-        'PD-L %': round((df['Day_Type_1'] == 'PD-L').sum() / total_days * 100, 2),
-        'PD-HL': (df['Day_Type_1'] == 'PD-HL').sum(),
-        'PD-HL %': round((df['Day_Type_1'] == 'PD-HL').sum() / total_days * 100, 2),
-        'PD-nHL': (df['Day_Type_1'] == 'PD-nHL').sum(),
-        'PD-nHL %': round((df['Day_Type_1'] == 'PD-nHL').sum() / total_days * 100, 2),
+        'D UP': (df['close'] > df['open']).sum(),
+        'D UP %': round((df['close'] > df['open']).sum() / total_days * 100, 2),
+        'D DN': (df['close'] < df['open']).sum(),
+        'D DN %': round((df['close'] < df['open']).sum() / total_days * 100, 2),
+        'PD-H': (df['day_type_1'] == 'PD-H').sum(),
+        'PD-H %': round((df['day_type_1'] == 'PD-H').sum() / total_days * 100, 2),
+        'PD-L': (df['day_type_1'] == 'PD-L').sum(),
+        'PD-L %': round((df['day_type_1'] == 'PD-L').sum() / total_days * 100, 2),
+        'PD-HL': (df['day_type_1'] == 'PD-HL').sum(),
+        'PD-HL %': round((df['day_type_1'] == 'PD-HL').sum() / total_days * 100, 2),
+        'PD-nHL': (df['day_type_1'] == 'PD-nHL').sum(),
+        'PD-nHL %': round((df['day_type_1'] == 'PD-nHL').sum() / total_days * 100, 2),
     }
 
     # Overall extended stats
     stats_1 = {
         'Total Days': total_days,
-        'CaPD-H': (df['Day_Type_2'] == 'CaPD-H').sum(),
-        'CaPD-H %': round((df['Day_Type_2'] == 'CaPD-H').sum() / total_days * 100, 2),
-        'CbPD-L': (df['Day_Type_2'] == 'CbPD-L').sum(),
-        'CbPD-L %': round((df['Day_Type_2'] == 'CbPD-L').sum() / total_days * 100, 2),
-        'CaPD-HL': (df['Day_Type_2'] == 'CaPD-HL').sum(),
-        'CaPD-HL %': round((df['Day_Type_2'] == 'CaPD-HL').sum() / total_days * 100, 2),
-        'CbPD-HL': (df['Day_Type_2'] == 'CbPD-HL').sum(),
-        'CbPD-HL %': round((df['Day_Type_2'] == 'CbPD-HL').sum() / total_days * 100, 2),
-        'BISI': (df['Day_Type_2'] == 'BISI').sum(),
-        'BISI %': round((df['Day_Type_2'] == 'BISI').sum() / total_days * 100, 2),
-        'SIBI': (df['Day_Type_2'] == 'SIBI').sum(),
-        'SIBI %': round((df['Day_Type_2'] == 'SIBI').sum() / total_days * 100, 2),
+        'CaPD-H': (df['day_type_2'] == 'CaPD-H').sum(),
+        'CaPD-H %': round((df['day_type_2'] == 'CaPD-H').sum() / total_days * 100, 2),
+        'CbPD-L': (df['day_type_2'] == 'CbPD-L').sum(),
+        'CbPD-L %': round((df['day_type_2'] == 'CbPD-L').sum() / total_days * 100, 2),
+        'CaPD-HL': (df['day_type_2'] == 'CaPD-HL').sum(),
+        'CaPD-HL %': round((df['day_type_2'] == 'CaPD-HL').sum() / total_days * 100, 2),
+        'CbPD-HL': (df['day_type_2'] == 'CbPD-HL').sum(),
+        'CbPD-HL %': round((df['day_type_2'] == 'CbPD-HL').sum() / total_days * 100, 2),
+        'BISI': (df['day_type_2'] == 'BISI').sum(),
+        'BISI %': round((df['day_type_2'] == 'BISI').sum() / total_days * 100, 2),
+        'SIBI': (df['day_type_2'] == 'SIBI').sum(),
+        'SIBI %': round((df['day_type_2'] == 'SIBI').sum() / total_days * 100, 2),
     }
 
     # Compute stats grouped by weekday
     stats_weekdays = {}
     stats_1_weekdays = {}
 
-    for weekday, group in df.groupby('Weekday'):
+    for weekday, group in df.groupby('weekday'):
         weekday_total = len(group)
 
         # Regular stats by weekday
         stats_weekdays[weekday] = {
             'Total Days': weekday_total,
-            'D UP': (group['Close'] > group['Open']).sum(),
-            'D UP %': round((group['Close'] > group['Open']).sum() / weekday_total * 100, 2),
-            'D DN': (group['Close'] < group['Open']).sum(),
-            'D DN %': round((group['Close'] < group['Open']).sum() / weekday_total * 100, 2),
-            'PD-H': (group['Day_Type_1'] == 'PD-H').sum(),
-            'PD-H %': round((group['Day_Type_1'] == 'PD-H').sum() / weekday_total * 100, 2),
-            'PD-L': (group['Day_Type_1'] == 'PD-L').sum(),
-            'PD-L %': round((group['Day_Type_1'] == 'PD-L').sum() / weekday_total * 100, 2),
-            'PD-HL': (group['Day_Type_1'] == 'PD-HL').sum(),
-            'PD-HL %': round((group['Day_Type_1'] == 'PD-HL').sum() / weekday_total * 100, 2),
-            'PD-nHL': (group['Day_Type_1'] == 'PD-nHL').sum(),
-            'PD-nHL %': round((group['Day_Type_1'] == 'PD-nHL').sum() / weekday_total * 100, 2),
+            'D UP': (group['close'] > group['open']).sum(),
+            'D UP %': round((group['close'] > group['open']).sum() / weekday_total * 100, 2),
+            'D DN': (group['close'] < group['open']).sum(),
+            'D DN %': round((group['close'] < group['open']).sum() / weekday_total * 100, 2),
+            'PD-H': (group['day_type_1'] == 'PD-H').sum(),
+            'PD-H %': round((group['day_type_1'] == 'PD-H').sum() / weekday_total * 100, 2),
+            'PD-L': (group['day_type_1'] == 'PD-L').sum(),
+            'PD-L %': round((group['day_type_1'] == 'PD-L').sum() / weekday_total * 100, 2),
+            'PD-HL': (group['day_type_1'] == 'PD-HL').sum(),
+            'PD-HL %': round((group['day_type_1'] == 'PD-HL').sum() / weekday_total * 100, 2),
+            'PD-nHL': (group['day_type_1'] == 'PD-nHL').sum(),
+            'PD-nHL %': round((group['day_type_1'] == 'PD-nHL').sum() / weekday_total * 100, 2),
         }
 
         # Extended stats by weekday
         stats_1_weekdays[weekday] = {
             'Total Days': weekday_total,
-            'CaPD-H': (group['Day_Type_2'] == 'CaPD-H').sum(),
-            'CaPD-H %': round((group['Day_Type_2'] == 'CaPD-H').sum() / weekday_total * 100, 2),
-            'CbPD-L': (group['Day_Type_2'] == 'CbPD-L').sum(),
-            'CbPD-L %': round((group['Day_Type_2'] == 'CbPD-L').sum() / weekday_total * 100, 2),
-            'CaPD-HL': (group['Day_Type_2'] == 'CaPD-HL').sum(),
-            'CaPD-HL %': round((group['Day_Type_2'] == 'CaPD-HL').sum() / weekday_total * 100, 2),
-            'CbPD-HL': (group['Day_Type_2'] == 'CbPD-HL').sum(),
-            'CbPD-HL %': round((group['Day_Type_2'] == 'CbPD-HL').sum() / weekday_total * 100, 2),
-            'BISI': (group['Day_Type_2'] == 'BISI').sum(),
-            'BISI %': round((group['Day_Type_2'] == 'BISI').sum() / weekday_total * 100, 2),
-            'SIBI': (group['Day_Type_2'] == 'SIBI').sum(),
-            'SIBI %': round((group['Day_Type_2'] == 'SIBI').sum() / weekday_total * 100, 2),
+            'CaPD-H': (group['day_type_2'] == 'CaPD-H').sum(),
+            'CaPD-H %': round((group['day_type_2'] == 'CaPD-H').sum() / weekday_total * 100, 2),
+            'CbPD-L': (group['day_type_2'] == 'CbPD-L').sum(),
+            'CbPD-L %': round((group['day_type_2'] == 'CbPD-L').sum() / weekday_total * 100, 2),
+            'CaPD-HL': (group['day_type_2'] == 'CaPD-HL').sum(),
+            'CaPD-HL %': round((group['day_type_2'] == 'CaPD-HL').sum() / weekday_total * 100, 2),
+            'CbPD-HL': (group['day_type_2'] == 'CbPD-HL').sum(),
+            'CbPD-HL %': round((group['day_type_2'] == 'CbPD-HL').sum() / weekday_total * 100, 2),
+            'BISI': (group['day_type_2'] == 'BISI').sum(),
+            'BISI %': round((group['day_type_2'] == 'BISI').sum() / weekday_total * 100, 2),
+            'SIBI': (group['day_type_2'] == 'SIBI').sum(),
+            'SIBI %': round((group['day_type_2'] == 'SIBI').sum() / weekday_total * 100, 2),
         }
 
     return stats, stats_1, stats_weekdays, stats_1_weekdays
@@ -603,16 +603,16 @@ def compute_day_trading_stats_for_all_years(ohlc_data, start_date, end_date):
     """
     Computes day trading statistics for each year in the OHLC data, filtered by the given date range.
     Args:
-        ohlc_data (pd.DataFrame): DataFrame containing 'Date', 'Open', 'High', 'Low', 'Close' columns.
+        ohlc_data (pd.DataFrame): DataFrame containing 'date', 'open', 'high', 'low', 'close' columns.
         start_date (str): Start date of the date range (from the Date-Picker).
         end_date (str): End date of the date range (from the Date-Picker).
 
     Returns:
         tuple: Contains yearly stats DataFrames, extended stats DataFrames, weekday stats DataFrames.
     """
-    # Ensure 'Date' is datetime and remove duplicates
-    ohlc_data['Date'] = pd.to_datetime(ohlc_data['Date'])
-    ohlc_data.drop_duplicates(subset=['Date'], inplace=True)
+    # Ensure 'date' is datetime and remove duplicates
+    ohlc_data['date'] = pd.to_datetime(ohlc_data['date'])
+    ohlc_data.drop_duplicates(subset=['date'], inplace=True)
 
     # Convert the start and end dates into day-month format for filtering each year
     start_month_day = pd.to_datetime(start_date).strftime('%m-%d')
@@ -620,43 +620,43 @@ def compute_day_trading_stats_for_all_years(ohlc_data, start_date, end_date):
 
     # Filter the data by the selected date range
     filtered_data = ohlc_data[
-        (ohlc_data['Date'].dt.strftime('%m-%d') >= start_month_day) &
-        (ohlc_data['Date'].dt.strftime('%m-%d') <= end_month_day)
+        (ohlc_data['date'].dt.strftime('%m-%d') >= start_month_day) &
+        (ohlc_data['date'].dt.strftime('%m-%d') <= end_month_day)
         ].copy()
 
     # Add weekday column for grouping
-    filtered_data['Weekday'] = filtered_data['Date'].dt.day_name()
+    filtered_data['weekday'] = filtered_data['date'].dt.day_name()
 
     # Initialize lists to store yearly and weekday stats
     stats_list, stats_1_list, stats_weekdays_list, stats_1_weekdays_list = [], [], [], []
 
     # Get list of unique years within the filtered range
-    years = filtered_data['Date'].dt.year.unique()
+    years = filtered_data['date'].dt.year.unique()
 
     # Process each year separately
     for year in sorted(years):
-        df_year = filtered_data[filtered_data['Date'].dt.year == year].copy()
+        df_year = filtered_data[filtered_data['date'].dt.year == year].copy()
         if len(df_year) > 1:  # Need at least two days to compute previous day's data
             # Compute the yearly statistics only once
             stats, stats_1, stats_weekdays, stats_1_weekdays = compute_day_trading_stats(df_year)
 
-            # Add 'Year' to each yearly stats dictionary
-            stats['Year'] = year
-            stats_1['Year'] = year
+            # Add 'year' to each yearly stats dictionary
+            stats['year'] = year
+            stats_1['year'] = year
             stats_list.append(stats)
             stats_1_list.append(stats_1)
 
             # For each weekday, group data and assign stats from stats_weekdays and stats_1_weekdays
-            for weekday in df_year['Weekday'].unique():
-                weekday_data = df_year[df_year['Weekday'] == weekday]
+            for weekday in df_year['weekday'].unique():
+                weekday_data = df_year[df_year['weekday'] == weekday]
                 if len(weekday_data) > 0:
                     # Extract weekday-specific stats
                     weekday_stats = stats_weekdays.get(weekday, {}).copy()
                     weekday_stats_1 = stats_1_weekdays.get(weekday, {}).copy()
 
-                    # Add 'Year' and 'Weekday' to the stats for proper identification
-                    weekday_stats.update({'Year': year, 'Weekday': weekday})
-                    weekday_stats_1.update({'Year': year, 'Weekday': weekday})
+                    # Add 'year' and 'weekday' to the stats for proper identification
+                    weekday_stats.update({'year': year, 'weekday': weekday})
+                    weekday_stats_1.update({'year': year, 'weekday': weekday})
                     stats_weekdays_list.append(weekday_stats)
                     stats_1_weekdays_list.append(weekday_stats_1)
 
@@ -671,7 +671,7 @@ def compute_day_trading_stats_for_all_years(ohlc_data, start_date, end_date):
     # Add a total row for yearly stats
     total_days = stats_df['Total Days'].sum()
     total_row = {
-        'Year': 'Total',
+        'year': 'Total',
         'Total Days': total_days,
         'D UP': stats_df['D UP'].sum(),
         'D UP %': round((stats_df['D UP'].sum() / total_days) * 100, 2),
@@ -690,7 +690,7 @@ def compute_day_trading_stats_for_all_years(ohlc_data, start_date, end_date):
 
     total_1_days = stats_1_df['Total Days'].sum()
     total_1_row = {
-        'Year': 'Total',
+        'year': 'Total',
         'Total Days': total_1_days,
         'CaPD-H': stats_1_df['CaPD-H'].sum(),
         'CaPD-H %': round((stats_1_df['CaPD-H'].sum() / total_1_days) * 100, 2),
@@ -712,9 +712,9 @@ def compute_day_trading_stats_for_all_years(ohlc_data, start_date, end_date):
     stats_weekdays_df = pd.DataFrame(stats_weekdays_list)
     stats_1_weekdays_df = pd.DataFrame(stats_1_weekdays_list)
 
-    # Aggregate by 'Weekday' to get a summary for each weekday across all years
-    weekday_summary_df = stats_weekdays_df.groupby('Weekday').sum()
-    weekday_summary_1_df = stats_1_weekdays_df.groupby('Weekday').sum()
+    # Aggregate by 'weekday' to get a summary for each weekday across all years
+    weekday_summary_df = stats_weekdays_df.groupby('weekday').sum()
+    weekday_summary_1_df = stats_1_weekdays_df.groupby('weekday').sum()
 
     # Calculate percentages for each weekday summary
     for col in ['D UP', 'D DN', 'PD-H', 'PD-L', 'PD-HL', 'PD-nHL']:
@@ -724,23 +724,23 @@ def compute_day_trading_stats_for_all_years(ohlc_data, start_date, end_date):
         weekday_summary_1_df[f"{col} %"] = (weekday_summary_1_df[col] / weekday_summary_1_df['Total Days'] * 100).round(
             2)
 
-    # Reset index to have 'Weekday' as a column rather than the index
+    # Reset index to have 'weekday' as a column rather than the index
     weekday_summary_df.reset_index(inplace=True)
     weekday_summary_1_df.reset_index(inplace=True)
 
     # Define the correct order for weekdays
     weekday_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
     # Sort by the defined weekday order
-    weekday_summary_df['Weekday'] = pd.Categorical(weekday_summary_df['Weekday'], categories=weekday_order,
+    weekday_summary_df['weekday'] = pd.Categorical(weekday_summary_df['weekday'], categories=weekday_order,
                                                    ordered=True)
-    weekday_summary_df = weekday_summary_df.dropna(subset=['Weekday'])
+    weekday_summary_df = weekday_summary_df.dropna(subset=['weekday'])
 
-    weekday_summary_df.sort_values('Weekday', inplace=True)
+    weekday_summary_df.sort_values('weekday', inplace=True)
 
-    weekday_summary_1_df['Weekday'] = pd.Categorical(weekday_summary_1_df['Weekday'], categories=weekday_order,
+    weekday_summary_1_df['weekday'] = pd.Categorical(weekday_summary_1_df['weekday'], categories=weekday_order,
                                                      ordered=True)
-    weekday_summary_1_df = weekday_summary_1_df.dropna(subset=['Weekday'])
-    weekday_summary_1_df.sort_values('Weekday', inplace=True)
+    weekday_summary_1_df = weekday_summary_1_df.dropna(subset=['weekday'])
+    weekday_summary_1_df.sort_values('weekday', inplace=True)
 
     return stats_df, stats_1_df, weekday_summary_df, weekday_summary_1_df
 
@@ -763,16 +763,16 @@ def create_cumulative_return_charts(start_month, start_day, end_month, end_day, 
         year = current_year - year_offset
 
         # Get the nearest start and end dates for the current year
-        start_data = find_nearest_date(ohlc_data[ohlc_data['Date'].dt.year == year],
+        start_data = find_nearest_date(ohlc_data[ohlc_data['date'].dt.year == year],
                                        f"{year}-{start_month:02d}-{start_day:02d}")
-        end_data = find_nearest_date(ohlc_data[ohlc_data['Date'].dt.year == year],
+        end_data = find_nearest_date(ohlc_data[ohlc_data['date'].dt.year == year],
                                      f"{year}-{end_month:02d}-{end_day:02d}")
 
         if start_data is None or end_data is None:
             continue
 
         # Filter OHLC data for the specific date range
-        yearly_data = ohlc_data[(ohlc_data['Date'] >= start_data['Date']) & (ohlc_data['Date'] <= end_data['Date'])]
+        yearly_data = ohlc_data[(ohlc_data['date'] >= start_data['date']) & (ohlc_data['date'] <= end_data['date'])]
 
         if year_offset < 15:
             # Ensure we only add to the 15-year dataset if we're processing the first 15 years
@@ -782,34 +782,34 @@ def create_cumulative_return_charts(start_month, start_day, end_month, end_day, 
             combined_data_30y = pd.concat([combined_data_30y, yearly_data], ignore_index=True)
 
     # Sort the dataframes by date to ensure proper calculations
-    combined_data_15y.drop_duplicates(subset=['Date'], inplace=True)  # Remove duplicates, if any
-    combined_data_30y.drop_duplicates(subset=['Date'], inplace=True)  # Remove duplicates, if any
+    combined_data_15y.drop_duplicates(subset=['date'], inplace=True)  # Remove duplicates, if any
+    combined_data_30y.drop_duplicates(subset=['date'], inplace=True)  # Remove duplicates, if any
 
-    combined_data_15y.sort_values('Date', inplace=True)
-    combined_data_30y.sort_values('Date', inplace=True)
+    combined_data_15y.sort_values('date', inplace=True)
+    combined_data_30y.sort_values('date', inplace=True)
 
     # Format dates to exclude the time component
-    combined_data_15y['Formatted_Date'] = combined_data_15y['Date'].dt.strftime('%Y-%m-%d')
-    combined_data_30y['Formatted_Date'] = combined_data_30y['Date'].dt.strftime('%Y-%m-%d')
+    combined_data_15y['formatted_date'] = combined_data_15y['date'].dt.strftime('%Y-%m-%d')
+    combined_data_30y['formatted_date'] = combined_data_30y['date'].dt.strftime('%Y-%m-%d')
 
     # Calculate daily returns for no stop-loss for both periods
-    combined_data_15y['No_Stop_Returns'] = combined_data_15y['Close_Close_Pct_Change'].fillna(0)
-    combined_data_30y['No_Stop_Returns'] = combined_data_30y['Close_Close_Pct_Change'].fillna(0)
+    combined_data_15y['no_stop_returns'] = combined_data_15y['close_close_pct_change'].fillna(0)
+    combined_data_30y['no_stop_returns'] = combined_data_30y['close_close_pct_change'].fillna(0)
 
     # combined_data_15y.to_csv('Combined_Data_15y.csv')
 
     # Invert returns for short trades
     if direction == 'Short':
-        combined_data_15y['No_Stop_Returns'] *= -1
-        combined_data_30y['No_Stop_Returns'] *= -1
+        combined_data_15y['no_stop_returns'] *= -1
+        combined_data_30y['no_stop_returns'] *= -1
 
     # Initialize columns for stop-loss/optimal exit returns
-    combined_data_15y['Stop_Loss_Returns'] = pd.Series(dtype=float)
-    combined_data_30y['Stop_Loss_Returns'] = pd.Series(dtype=float)
+    combined_data_15y['stop_loss_returns'] = pd.Series(dtype=float)
+    combined_data_30y['stop_loss_returns'] = pd.Series(dtype=float)
 
     # Process each year in the 15-year data for stop-loss/exit strategy
-    for year in combined_data_15y['Date'].dt.year.unique():
-        yearly_data_15y = combined_data_15y[combined_data_15y['Date'].dt.year == year]
+    for year in combined_data_15y['date'].dt.year.unique():
+        yearly_data_15y = combined_data_15y[combined_data_15y['date'].dt.year == year]
 
         # Apply stop-loss/exit for 15-year data slice
         stop_loss_returns_15y = calculate_stop_loss_return(yearly_data_15y, optimal_results_15y, direction)
@@ -817,15 +817,15 @@ def create_cumulative_return_charts(start_month, start_day, end_month, end_day, 
         # Ensure lengths match
         if len(stop_loss_returns_15y) == len(yearly_data_15y):
             # Align indices and store stop-loss/exit returns
-            combined_data_15y.loc[yearly_data_15y.index, 'Stop_Loss_Returns'] = stop_loss_returns_15y.values
+            combined_data_15y.loc[yearly_data_15y.index, 'stop_loss_returns'] = stop_loss_returns_15y.values
         else:
             print(
                 f"Warning: Mismatch in lengths for year {year}. Yearly data length: {len(yearly_data_15y)}"
                 f", Stop-loss return length: {len(stop_loss_returns_15y)}")
 
     # Process each year in the 30-year data for stop-loss/exit strategy
-    for year in combined_data_30y['Date'].dt.year.unique():
-        yearly_data_30y = combined_data_30y[combined_data_30y['Date'].dt.year == year]
+    for year in combined_data_30y['date'].dt.year.unique():
+        yearly_data_30y = combined_data_30y[combined_data_30y['date'].dt.year == year]
 
         # Apply stop-loss/exit for 30-year data slice
         stop_loss_returns_30y = calculate_stop_loss_return(yearly_data_30y, optimal_results_30y, direction)
@@ -833,40 +833,38 @@ def create_cumulative_return_charts(start_month, start_day, end_month, end_day, 
         # Ensure lengths match
         if len(stop_loss_returns_30y) == len(yearly_data_30y):
             # Align indices and store stop-loss/exit returns
-            combined_data_30y.loc[yearly_data_30y.index, 'Stop_Loss_Returns'] = stop_loss_returns_30y.values
+            combined_data_30y.loc[yearly_data_30y.index, 'stop_loss_returns'] = stop_loss_returns_30y.values
         else:
             print(
                 f"Warning: Mismatch in lengths for year {year}. Yearly data length: {len(yearly_data_30y)}"
                 f", Stop-loss return length: {len(stop_loss_returns_30y)}")
 
     # Calculate cumulative returns for both no stop-loss and with stop-loss/optimal exit strategies
-    combined_data_15y['Cumulative_No_Stop'] = combined_data_15y['No_Stop_Returns'].cumsum()
-    combined_data_15y['Cumulative_Stop_Loss'] = combined_data_15y['Stop_Loss_Returns'].cumsum()
+    combined_data_15y['cumulative_no_stop'] = combined_data_15y['no_stop_returns'].cumsum()
+    combined_data_15y['cumulative_stop_loss'] = combined_data_15y['stop_loss_returns'].cumsum()
 
-    combined_data_15y.to_csv('Combined_Data_15y_CUMULATIVE.csv')
-
-    combined_data_30y['Cumulative_No_Stop'] = combined_data_30y['No_Stop_Returns'].cumsum()
-    combined_data_30y['Cumulative_Stop_Loss'] = combined_data_30y['Stop_Loss_Returns'].cumsum()
+    combined_data_30y['cumulative_no_stop'] = combined_data_30y['no_stop_returns'].cumsum()
+    combined_data_30y['cumulative_stop_loss'] = combined_data_30y['stop_loss_returns'].cumsum()
 
     # Plotting for the 15-year data
     fig_15y = go.Figure()
     fig_15y.add_trace(
-        go.Scatter(x=combined_data_15y['Formatted_Date'], y=combined_data_15y['Cumulative_No_Stop'], mode='lines',
+        go.Scatter(x=combined_data_15y['formatted_date'], y=combined_data_15y['cumulative_no_stop'], mode='lines',
                    name='No Stop-Loss (15 Years)', line=dict(color='CornflowerBlue'))
     )
     fig_15y.add_trace(
-        go.Scatter(x=combined_data_15y['Formatted_Date'], y=combined_data_15y['Cumulative_Stop_Loss'], mode='lines',
+        go.Scatter(x=combined_data_15y['formatted_date'], y=combined_data_15y['cumulative_stop_loss'], mode='lines',
                    name='With Stop-Loss/Optimal Exit (15 Years)', line=dict(color='Salmon'))
     )
 
     # Plotting for the 30-year data
     fig_30y = go.Figure()
     fig_30y.add_trace(
-        go.Scatter(x=combined_data_30y['Formatted_Date'], y=combined_data_30y['Cumulative_No_Stop'], mode='lines',
+        go.Scatter(x=combined_data_30y['formatted_date'], y=combined_data_30y['cumulative_no_stop'], mode='lines',
                    name='No Stop-Loss (30 Years)', line=dict(color='CornflowerBlue'))
     )
     fig_30y.add_trace(
-        go.Scatter(x=combined_data_30y['Formatted_Date'], y=combined_data_30y['Cumulative_Stop_Loss'], mode='lines',
+        go.Scatter(x=combined_data_30y['formatted_date'], y=combined_data_30y['cumulative_stop_loss'], mode='lines',
                    name='With Stop-Loss/Optimal Exit (30 Years)', line=dict(color='Salmon'))
     )
 
@@ -878,10 +876,10 @@ def create_cumulative_return_charts(start_month, start_day, end_month, end_day, 
 
     # Return the necessary data for plotting
     return (fig_15y, fig_30y,
-            combined_data_15y['No_Stop_Returns'], combined_data_30y['No_Stop_Returns'],
-            combined_data_15y['Stop_Loss_Returns'], combined_data_30y['Stop_Loss_Returns'],
-            combined_data_15y['Cumulative_No_Stop'], combined_data_15y['Cumulative_Stop_Loss'],  # Cumulative returns
-            combined_data_30y['Cumulative_No_Stop'], combined_data_30y['Cumulative_Stop_Loss']  # Cumulative returns
+            combined_data_15y['no_stop_returns'], combined_data_30y['no_stop_returns'],
+            combined_data_15y['stop_loss_returns'], combined_data_30y['stop_loss_returns'],
+            combined_data_15y['cumulative_no_stop'], combined_data_15y['cumulative_stop_loss'],  # Cumulative returns
+            combined_data_30y['cumulative_no_stop'], combined_data_30y['cumulative_stop_loss']  # Cumulative returns
             )
 
 
@@ -908,19 +906,19 @@ def create_scatter_plots(day_data, direction="Long", best_stop_loss_level=None, 
     """
     # Define columns based on the direction
     if direction == "Long":
-        x_col_1 = 'Open_Low_Pct_Change'
-        y_col_1 = 'Open_Close_Pct_Change'
-        x_col_2 = 'Open_Low_Pct_Change'
-        y_col_2 = 'Open_High_Pct_Change'
+        x_col_1 = 'open_low_pct_change'
+        y_col_1 = 'open_close_pct_change'
+        x_col_2 = 'open_low_pct_change'
+        y_col_2 = 'open_high_pct_change'
         xaxis_title_1 = 'Open-Low % Change'
         xaxis_title_2 = 'Open-Low % Change'
         yaxis_title_1 = 'Open-Close % Change'
         yaxis_title_2 = 'Open-High % Change'
     else:  # Short direction
-        x_col_1 = 'Open_High_Pct_Change'
-        y_col_1 = 'Open_Close_Pct_Change'
-        x_col_2 = 'Open_High_Pct_Change'
-        y_col_2 = 'Open_Low_Pct_Change'
+        x_col_1 = 'open_high_pct_change'
+        y_col_1 = 'open_close_pct_change'
+        x_col_2 = 'open_high_pct_change'
+        y_col_2 = 'open_low_pct_change'
         xaxis_title_1 = 'Open-High % Change'
         xaxis_title_2 = 'Open-High % Change'
         yaxis_title_1 = 'Open-Close % Change'
@@ -1065,45 +1063,45 @@ def create_high_low_vs_prev_distribution(day_data, day_type="pdh"):
         or a tuple of figures for `pdhl`.
     """
     if day_type == "pdh":
-        high_pct_changes = day_data['PDH_High_Pct_Change'].dropna()
+        high_pct_changes = day_data['pdh_high_pct_change'].dropna()
         fig_high = go.Figure(data=[go.Histogram(x=high_pct_changes, nbinsx=50)])
         add_percentile_lines(fig_high, high_pct_changes, title='High-Previous Day High % Change', day_type=day_type)
         return fig_high
 
     elif day_type == "pdl":
-        low_pct_changes = day_data['PDL_Low_Pct_Change'].dropna()
+        low_pct_changes = day_data['pdl_low_pct_change'].dropna()
         fig_low = go.Figure(data=[go.Histogram(x=low_pct_changes, nbinsx=50)])
         add_percentile_lines(fig_low, low_pct_changes, title='Low-Previous Day Low % Change', day_type=day_type)
         return fig_low
 
     elif day_type == "pdhl":
-        high_pct_changes = day_data['PDH_High_Pct_Change'].dropna()
+        high_pct_changes = day_data['pdh_high_pct_change'].dropna()
         fig_high = go.Figure(data=[go.Histogram(x=high_pct_changes, nbinsx=50)])
         add_percentile_lines(fig_high, high_pct_changes, title='High-Previous Day High % Change', day_type='pdh')
 
-        low_pct_changes = day_data['PDL_Low_Pct_Change'].dropna()
+        low_pct_changes = day_data['pdl_low_pct_change'].dropna()
         fig_low = go.Figure(data=[go.Histogram(x=low_pct_changes, nbinsx=50)])
         add_percentile_lines(fig_low, low_pct_changes, title='Low-Previous Day Low % Change', day_type='pdl')
 
         return fig_high, fig_low
 
     elif day_type == "dup" or day_type == "ddown":
-        high_pct_changes = day_data['PDH_High_Pct_Change'].dropna()
+        high_pct_changes = day_data['pdh_high_pct_change'].dropna()
         fig_high = go.Figure(data=[go.Histogram(x=high_pct_changes, nbinsx=50)])
         add_percentile_lines(fig_high, high_pct_changes, title='High-Previous Day High % Change', day_type=day_type)
 
-        low_pct_changes = day_data['PDL_Low_Pct_Change'].dropna()
+        low_pct_changes = day_data['pdl_low_pct_change'].dropna()
         fig_low = go.Figure(data=[go.Histogram(x=low_pct_changes, nbinsx=50)])
         add_percentile_lines(fig_low, low_pct_changes, title='Low-Previous Day Low % Change', day_type=day_type)
 
         return fig_high, fig_low
 
     else:
-        high_pct_changes = day_data['PDH_High_Pct_Change'].dropna()
+        high_pct_changes = day_data['pdh_high_pct_change'].dropna()
         fig_high = go.Figure(data=[go.Histogram(x=high_pct_changes, nbinsx=50)])
         add_percentile_lines(fig_high, high_pct_changes, title='High-Previous Day High % Change', day_type=day_type)
 
-        low_pct_changes = day_data['PDL_Low_Pct_Change'].dropna()
+        low_pct_changes = day_data['pdl_low_pct_change'].dropna()
         fig_low = go.Figure(data=[go.Histogram(x=low_pct_changes, nbinsx=50)])
         add_percentile_lines(fig_low, low_pct_changes, title='Low-Previous Day Low % Change', day_type=day_type)
 
@@ -1132,9 +1130,9 @@ def calculate_percentiles(day_data, column):
 
 def create_distributions(day_data, day_type="None"):
     distributions = {}
-    open_high_col = "Open_High_Pct_Change"
-    open_low_col = "Open_Low_Pct_Change"
-    open_close_col = "Open_Close_Pct_Change"
+    open_high_col = 'open_high_pct_change'
+    open_low_col = 'open_low_pct_change'
+    open_close_col = 'open_close_pct_change'
 
     # Calculate distributions for each metric
     for key, col in zip(['open_high', 'open_low', 'open_close'], [open_high_col, open_low_col, open_close_col]):
@@ -1264,7 +1262,7 @@ def filter_dup_days(df):
         pd.DataFrame: A dataframe filtered for D-UP days.
     """
     # Filter for D-UP days directly
-    return df[df['Close'] > df['Open']].copy()
+    return df[df['close'] > df['open']].copy()
 
 
 def filter_ddown_days(df):
@@ -1278,46 +1276,46 @@ def filter_ddown_days(df):
         pd.DataFrame: A dataframe filtered for D-DOWN days.
     """
     # Filter for D-DOWN days directly
-    return df[df['Close'] < df['Open']].copy()
+    return df[df['close'] < df['open']].copy()
 
 
 def filter_pdh_days(df):
     """
-    Filters the dataframe to return only PD-H days based on the precomputed 'Day_Type_1' column.
+    Filters the dataframe to return only PD-H days based on the precomputed 'day_type_1' column.
 
     Args:
-        df (pd.DataFrame): The input OHLC dataframe with precomputed 'Day_Type_1' column.
+        df (pd.DataFrame): The input OHLC dataframe with precomputed 'day_type_1' column.
 
     Returns:
         pd.DataFrame: A dataframe filtered for PD-H days.
     """
-    return df[df['Day_Type_1'] == 'PD-H'].copy()
+    return df[df['day_type_1'] == 'PD-H'].copy()
 
 
 def filter_pdl_days(df):
     """
-    Filters the dataframe to return only PD-L days based on the precomputed 'Day_Type_1' column.
+    Filters the dataframe to return only PD-L days based on the precomputed 'day_type_1' column.
 
     Args:
-        df (pd.DataFrame): The input OHLC dataframe with precomputed 'Day_Type_1' column.
+        df (pd.DataFrame): The input OHLC dataframe with precomputed 'day_type_1' column.
 
     Returns:
         pd.DataFrame: A dataframe filtered for PD-L days.
     """
-    return df[df['Day_Type_1'] == 'PD-L'].copy()
+    return df[df['day_type_1'] == 'PD-L'].copy()
 
 
 def filter_pdhl_days(df):
     """
-    Filters the dataframe to return only PD-HL days based on the precomputed 'Day_Type_1' column.
+    Filters the dataframe to return only PD-HL days based on the precomputed 'day_type_1' column.
 
     Args:
-        df (pd.DataFrame): The input OHLC dataframe with precomputed 'Day_Type_1' column.
+        df (pd.DataFrame): The input OHLC dataframe with precomputed 'day_type_1' column.
 
     Returns:
         pd.DataFrame: A dataframe filtered for PD-HL days.
     """
-    return df[df['Day_Type_1'] == 'PD-HL'].copy()
+    return df[df['day_type_1'] == 'PD-HL'].copy()
 
 
 def find_nearest_date(data, target_date, max_delta=3):
@@ -1325,7 +1323,7 @@ def find_nearest_date(data, target_date, max_delta=3):
     Find the nearest available date within a range of ±max_delta days from the target date.
 
     Args:
-        data (pd.DataFrame): The OHLC data with a 'Date' column.
+        data (pd.DataFrame): The OHLC data with a 'date' column.
         target_date (str): The target date in "YYYY-MM-DD" format.
         max_delta (int): The maximum number of days to search before or after the target date.
 
@@ -1339,7 +1337,7 @@ def find_nearest_date(data, target_date, max_delta=3):
         # Try going backward and forward from the target date
         for sign in [-1, 1]:
             search_date = target_date + timedelta(days=sign * delta)
-            nearest_data = data[data['Date'] == search_date]
+            nearest_data = data[data['date'] == search_date]
 
             if not nearest_data.empty:
                 return nearest_data.iloc[0]  # Return the first matching row
@@ -1369,9 +1367,9 @@ def optimize_stop_loss_open_to_close(day_data, direction="Long"):
     Optimize stop-loss based on Open-Low (for Long) or Open-High (for Short) and Open-Close percentage changes.
 
     Args:
-        day_data (pd.DataFrame): DataFrame containing day data with 'Open_Low_Pct_Change'
-        and 'Open_Close_Pct_Change' (Long)
-        or 'Open_High_Pct_Change' and 'Open_Close_Pct_Change' (Short).
+        day_data (pd.DataFrame): DataFrame containing day data with 'open_low_pct_change'
+        and 'open_close_pct_change' (Long)
+        or 'open_high_pct_change' and 'open_close_pct_change' (Short).
         direction (str): Trade direction, either "Long" or "Short".
 
     Returns:
@@ -1382,8 +1380,8 @@ def optimize_stop_loss_open_to_close(day_data, direction="Long"):
     best_expected_return = 0
 
     # Choose columns based on direction
-    stop_loss_col = 'Open_Low_Pct_Change' if direction == "Long" else 'Open_High_Pct_Change'
-    close_pct_col = 'Open_Close_Pct_Change'
+    stop_loss_col = 'open_low_pct_change' if direction == "Long" else 'open_high_pct_change'
+    close_pct_col = 'open_close_pct_change'
 
     # Determine range for stop-loss levels
     if direction == 'Long':
@@ -1430,8 +1428,8 @@ def optimize_stop_loss_and_exit(day_data, best_stop_loss_level, direction="Long"
     Optimize take-profit based on a fixed stop-loss level and Open-High (Long) or Open-Low (Short).
 
     Args:
-        day_data (pd.DataFrame): DataFrame containing day data with 'Open_Low_Pct_Change', 'Open_High_Pct_Change',
-                                 and 'Open_Close_Pct_Change'.
+        day_data (pd.DataFrame): DataFrame containing day data with 'open_low_pct_change', 'open_high_pct_change',
+                                 and 'open_close_pct_change'.
         best_stop_loss_level (float): Optimal stop-loss level calculated previously.
         direction (str): Trade direction, either "Long" or "Short".
 
@@ -1444,9 +1442,9 @@ def optimize_stop_loss_and_exit(day_data, best_stop_loss_level, direction="Long"
     trades_with_no_exit = None
 
     # Choose columns based on direction
-    exit_col = 'Open_High_Pct_Change' if direction == "Long" else 'Open_Low_Pct_Change'
-    stop_loss_col = 'Open_Low_Pct_Change' if direction == "Long" else 'Open_High_Pct_Change'
-    close_pct_col = 'Open_Close_Pct_Change'
+    exit_col = 'open_high_pct_change' if direction == "Long" else 'open_low_pct_change'
+    stop_loss_col = 'open_low_pct_change' if direction == "Long" else 'open_high_pct_change'
+    close_pct_col = 'open_close_pct_change'
 
     if direction == 'Long':
         take_profit_max = day_data[exit_col].max()
@@ -1520,14 +1518,14 @@ def perform_analysis(start_date, end_date, direction, ohlc_data):
     start_month, start_day = pd.to_datetime(start_date).month, pd.to_datetime(start_date).day
     end_month, end_day = pd.to_datetime(end_date).month, pd.to_datetime(end_date).day
 
-    # Ensure 'Date' is a datetime-like object
-    ohlc_data['Date'] = pd.to_datetime(ohlc_data['Date'], errors='coerce')
+    # Ensure 'date' is a datetime-like object
+    ohlc_data['date'] = pd.to_datetime(ohlc_data['date'], errors='coerce')
 
     # Initialize list to store analysis results for each year
     analysis_results = []
 
     # Get unique years from the OHLC data
-    unique_years = ohlc_data['Date'].dt.year.unique()
+    unique_years = ohlc_data['date'].dt.year.unique()
 
     # Concatenated DataFrames for D-UP, D-DOWN, PD-H, PD-L, and PD-HL day types
     dup_days_all_years = pd.DataFrame()
@@ -1539,7 +1537,7 @@ def perform_analysis(start_date, end_date, direction, ohlc_data):
 
     # Perform yearly analysis and accumulate filtered data for each day type
     for year in unique_years:
-        yearly_data = ohlc_data[ohlc_data['Date'].dt.year == year]
+        yearly_data = ohlc_data[ohlc_data['date'].dt.year == year]
         start_date_str = f"{year}-{start_month:02d}-{start_day:02d}"
         end_date_str = f"{year + (1 if end_month < start_month else 0)}-{end_month:02d}-{end_day:02d}"
 
@@ -1550,16 +1548,16 @@ def perform_analysis(start_date, end_date, direction, ohlc_data):
             continue
 
         # Filter data for this year and date range
-        start_date = start_data['Date']
-        end_date = end_data['Date']
-        filtered_yearly_data = yearly_data[(yearly_data['Date'] >= start_date) & (yearly_data['Date'] <= end_date)]
+        start_date = start_data['date']
+        end_date = end_data['date']
+        filtered_yearly_data = yearly_data[(yearly_data['date'] >= start_date) & (yearly_data['date'] <= end_date)]
 
         if filtered_yearly_data.empty:
             continue
 
         # Perform calculations (points change, max drawdown, etc.)
-        open_price = pd.to_numeric(start_data['Open'], errors='coerce')
-        close_price = pd.to_numeric(end_data['Close'], errors='coerce')
+        open_price = pd.to_numeric(start_data['open'], errors='coerce')
+        close_price = pd.to_numeric(end_data['close'], errors='coerce')
         if pd.isnull(open_price) or pd.isnull(close_price):
             continue
 
@@ -1568,7 +1566,7 @@ def perform_analysis(start_date, end_date, direction, ohlc_data):
         max_gain = calculate_max_gain(filtered_yearly_data, open_price, direction)
 
         analysis_results.append({
-            'Year': year,
+            'year': year,
             'Max Drawdown (Points)': round(max_drawdown['points'], 4),
             'Max Drawdown (%)': round(max_drawdown['percentage'], 1),
             'Max Gain (Points)': round(max_gain['points'], 4),
@@ -1578,18 +1576,18 @@ def perform_analysis(start_date, end_date, direction, ohlc_data):
         })
 
         # Sort analysis results by year
-        analysis_results = sorted(analysis_results, key=lambda x: x['Year'], reverse=True)
+        analysis_results = sorted(analysis_results, key=lambda x: x['year'], reverse=True)
 
         # Filter columns for dup and ddown analysis
-        filtered_yearly_data_for_dup_ddown = filtered_yearly_data[['Open_Low_Pct_Change', 'Open_High_Pct_Change',
-                                                                   'Open_Close_Pct_Change', 'Close', 'Open',
-                                                                   'Day_Type_1',
-                                                                   'PDH_High_Pct_Change', 'PDL_Low_Pct_Change']]
+        filtered_yearly_data_for_dup_ddown = filtered_yearly_data[['open_low_pct_change', 'open_high_pct_change',
+                                                                   'open_close_pct_change', 'close', 'open',
+                                                                   'day_type_1',
+                                                                   'pdh_high_pct_change', 'pdl_low_pct_change']]
 
         # Filter columns for pdh, pdl, and pdhl analysis
-        filtered_yearly_data_for_pdh_pdl_pdhl = filtered_yearly_data[['Open_Low_Pct_Change', 'Open_High_Pct_Change',
-                                                                      'Open_Close_Pct_Change', 'Day_Type_1',
-                                                                      'PDH_High_Pct_Change', 'PDL_Low_Pct_Change']]
+        filtered_yearly_data_for_pdh_pdl_pdhl = filtered_yearly_data[['open_low_pct_change', 'open_high_pct_change',
+                                                                      'open_close_pct_change', 'day_type_1',
+                                                                      'pdh_high_pct_change', 'pdl_low_pct_change']]
 
         # Aggregate filtered data for D-UP, D-DOWN, PD-H, PD-L, and PD-HL analysis across all years
         dup_days_all_years = pd.concat([dup_days_all_years, filter_dup_days(filtered_yearly_data_for_dup_ddown)],
@@ -1772,16 +1770,16 @@ def simulate_optimal_trades(analysis_results, ohlc_data, start_month, start_day,
         return []  # Return empty if thresholds are missing
 
     # Pre-filter the OHLC data for the relevant years
-    years = [result['Year'] for result in analysis_results]
-    ohlc_filtered = ohlc_data[ohlc_data['Date'].dt.year.isin(years)]
+    years = [result['year'] for result in analysis_results]
+    ohlc_filtered = ohlc_data[ohlc_data['date'].dt.year.isin(years)]
 
     # Precompute start and end dates for each year
     start_dates = {}
     end_dates = {}
     for year in years:
-        start_date = find_nearest_date(ohlc_filtered[ohlc_filtered['Date'].dt.year == year],
+        start_date = find_nearest_date(ohlc_filtered[ohlc_filtered['date'].dt.year == year],
                                        f"{year}-{start_month:02d}-{start_day:02d}")
-        end_date = find_nearest_date(ohlc_filtered[ohlc_filtered['Date'].dt.year == year],
+        end_date = find_nearest_date(ohlc_filtered[ohlc_filtered['date'].dt.year == year],
                                      f"{year}-{end_month:02d}-{end_day:02d}")
         if start_date is not None and end_date is not None:
             start_dates[year] = start_date
@@ -1792,7 +1790,7 @@ def simulate_optimal_trades(analysis_results, ohlc_data, start_month, start_day,
 
     # Iterate through the analysis results
     for result in analysis_results:
-        year = result['Year']
+        year = result['year']
 
         # Skip if start or end date is missing
         if year not in start_dates or year not in end_dates:
@@ -1801,9 +1799,9 @@ def simulate_optimal_trades(analysis_results, ohlc_data, start_month, start_day,
         start_data = start_dates[year]
         end_data = end_dates[year]
 
-        # Get the 'Open' and 'Close' prices
-        open_price = pd.to_numeric(start_data['Open'], errors='coerce')
-        close_price = pd.to_numeric(end_data['Close'], errors='coerce')
+        # Get the 'open' and 'close' prices
+        open_price = pd.to_numeric(start_data['open'], errors='coerce')
+        close_price = pd.to_numeric(end_data['close'], errors='coerce')
 
         if pd.isnull(open_price) or pd.isnull(close_price):
             continue  # Skip if prices are invalid
@@ -1844,7 +1842,7 @@ def update_cumulative_chart_layout(fig, title):
     """
     fig.update_layout(
         title=title,
-        xaxis_title='Date',
+        xaxis_title='date',
         yaxis_title='Cumulative Return (%)',
         plot_bgcolor='#1e1e1e',  # Same dark background as distribution charts
         paper_bgcolor='#1e1e1e',  # Same dark paper background
