@@ -1,12 +1,17 @@
-# Fetch_OHLC_old.py
+# Fetch_OHLC.py
 
 import yfinance as yf
 from datetime import datetime, timedelta
-import sqlite3
 import pandas as pd
 import numpy as np
-from app.scripts.config import market_tickers  # Import the market_tickers dictionary
+from config import market_tickers, db_path_str  # Import the market_tickers dictionary
+import os
+import psycopg2
+from sqlalchemy import create_engine
+from sqlalchemy.sql import text
 
+# Set the database path
+db_path = os.environ[db_path_str]
 
 def calculate_day_type_1(df):
     """
@@ -19,10 +24,10 @@ def calculate_day_type_1(df):
         pd.Series: A series indicating the day type for each row.
     """
     conditions = [
-        (df['High'] >= df['High'].shift(1)) & (df['Low'] > df['Low'].shift(1)),  # PD-H
-        (df['Low'] <= df['Low'].shift(1)) & (df['High'] < df['High'].shift(1)),  # PD-L
-        (df['High'] >= df['High'].shift(1)) & (df['Low'] <= df['Low'].shift(1)),  # PD-HL
-        (df['High'] < df['High'].shift(1)) & (df['Low'] > df['Low'].shift(1))  # PD-nHL
+        (df['high'] >= df['high'].shift(1)) & (df['low'] > df['low'].shift(1)),  # PD-H
+        (df['low'] <= df['low'].shift(1)) & (df['high'] < df['high'].shift(1)),  # PD-L
+        (df['high'] >= df['high'].shift(1)) & (df['low'] <= df['low'].shift(1)),  # PD-HL
+        (df['high'] < df['high'].shift(1)) & (df['low'] > df['low'].shift(1))  # PD-nHL
     ]
     choices = ['PD-H', 'PD-L', 'PD-HL', 'PD-nHL']
     return np.select(conditions, choices, default='None')
@@ -39,16 +44,16 @@ def calculate_day_type_2(df):
         pd.Series: A series indicating the day type for each row.
     """
     conditions = [
-        (df['High'] >= df['High'].shift(1)) & (df['Low'] > df['Low'].shift(1)) & (df['Close'] > df['High'].shift(1)),
+        (df['high'] >= df['high'].shift(1)) & (df['low'] > df['low'].shift(1)) & (df['close'] > df['high'].shift(1)),
         # CaPD-H
-        (df['Low'] <= df['Low'].shift(1)) & (df['High'] < df['High'].shift(1)) & (df['Close'] < df['Low'].shift(1)),
+        (df['low'] <= df['low'].shift(1)) & (df['high'] < df['high'].shift(1)) & (df['close'] < df['low'].shift(1)),
         # CbPD-L
-        (df['High'] >= df['High'].shift(1)) & (df['Low'] <= df['Low'].shift(1)) & (df['Close'] > df['High'].shift(1)),
+        (df['high'] >= df['high'].shift(1)) & (df['low'] <= df['low'].shift(1)) & (df['close'] > df['high'].shift(1)),
         # CaPD-HL
-        (df['Low'] <= df['Low'].shift(1)) & (df['High'] >= df['High'].shift(1)) & (df['Close'] < df['Low'].shift(1)),
+        (df['low'] <= df['low'].shift(1)) & (df['high'] >= df['high'].shift(1)) & (df['close'] < df['low'].shift(1)),
         # CbPD-HL
-        (df['Low'] > df['High'].shift(2)),  # BISI
-        (df['High'] < df['Low'].shift(2))  # SIBI
+        (df['low'] > df['high'].shift(2)),  # BISI
+        (df['high'] < df['low'].shift(2))  # SIBI
     ]
     choices = ['CaPD-H', 'CbPD-L', 'CaPD-HL', 'CbPD-HL', 'BISI', 'SIBI']
     return np.select(conditions, choices, default='None')
@@ -69,18 +74,17 @@ def calculate_percentage_changes(df):
     """
     Calculate percentage changes for Close-Close, Open-Close, Open-High, Open-Low, Close-High, Close-Low.
     """
-    print(f"Data_PCT_CHANGE: {df.head(10)}")
 
-    df['Close_Close_Pct_Change'] = ((df['Close']-df['Close'].shift(1)) / df['Close'].shift(1)) * 100
-    df['Open_Close_Pct_Change'] = ((df['Close'] - df['Open']) / df['Open']) * 100
-    df['Open_High_Pct_Change'] = ((df['High'] - df['Open']) / df['Open']) * 100
-    df['Open_Low_Pct_Change'] = ((df['Low'] - df['Open']) / df['Open']) * 100
-    df['Close_High_Pct_Change'] = ((df['High'] - df['Close']) / df['Close']) * 100
-    df['Close_Low_Pct_Change'] = ((df['Low'] - df['Close']) / df['Close']) * 100
+    df['close_close_pct_change'] = ((df['close']-df['close'].shift(1)) / df['close'].shift(1)) * 100
+    df['open_close_pct_change'] = ((df['close'] - df['open']) / df['open']) * 100
+    df['open_high_pct_change'] = ((df['high'] - df['open']) / df['open']) * 100
+    df['open_low_pct_change'] = ((df['low'] - df['open']) / df['open']) * 100
+    df['close_high_pct_change'] = ((df['high'] - df['close']) / df['close']) * 100
+    df['close_low_pct_change'] = ((df['low'] - df['close']) / df['close']) * 100
 
     # New calculations for PDL_Low_Pct_Change and PDH_High_Pct_Change
-    df['PDL_Low_Pct_Change'] = ((df['Low'] - df['Low'].shift(1)) / df['Low'].shift(1)) * 100
-    df['PDH_High_Pct_Change'] = ((df['High'] - df['High'].shift(1)) / df['High'].shift(1)) * 100
+    df['pdl_low_pct_change'] = ((df['low'] - df['low'].shift(1)) / df['low'].shift(1)) * 100
+    df['pdh_high_pct_change'] = ((df['high'] - df['high'].shift(1)) / df['high'].shift(1)) * 100
 
     # Round the percentage change columns to 2 decimal places
     # df = df.round(2)
@@ -95,26 +99,25 @@ def fetch_ohlc_for_2024(ticker, market_name, conn):
     Args:
         ticker (str): Ticker symbol of the market.
         market_name (str): Name of the market.
-        conn (sqlite3.Connection): SQLite database connection.
+        conn (postgresql.Connection): Database connection.
     """
     # Define the table name
     table_name = market_name.lower().replace(' ', '_') + '_ohlc'
 
     # Query the latest date in the database
-    query = f"SELECT MAX(Date) FROM {table_name}"
-    cursor = conn.execute(query)
-    result = cursor.fetchone()
+    query = f"SELECT MAX(date) FROM {table_name}"
+    with conn.connect() as connection:
+        result = connection.execute(text(query)).fetchone()
     last_date = result[0]
 
     # Determine the start date for fetching new data
     if last_date:
-        last_date = last_date.split(" ")[0]  # Strip the time component if present
-        start_date = (datetime.strptime(last_date, '%Y-%m-%d') + timedelta(days=1)).strftime('%Y-%m-%d')
+        start_date = last_date.strftime('%Y-%m-%d')  # last_date + timedelta(days=1)
     else:
         start_date = "2024-01-01"  # Start from the beginning if the table is empty
 
     # Define the end date as yesterday
-    end_date = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
+    end_date = (datetime.now()).strftime('%Y-%m-%d')
 
     # If start_date is after end_date, no need to fetch
     if datetime.strptime(start_date, '%Y-%m-%d') > datetime.strptime(end_date, '%Y-%m-%d'):
@@ -136,24 +139,28 @@ def fetch_ohlc_for_2024(ticker, market_name, conn):
         data.columns = [col[0] for col in data.columns]
 
     # Rename columns to match the desired format
-    data.rename(columns={'Date': 'Date', 'Close': 'Close', 'Open': 'Open', 'High': 'High', 'Low': 'Low'}, inplace=True)
+    data.rename(columns={'Date': 'date', 'Close': 'close', 'Open': 'open', 'High': 'high', 'Low': 'low'}, inplace=True)
 
     # Ensure the correct column order
-    data = data[['Date', 'Close', 'Open', 'High', 'Low']]
+    data = data[['date', 'close', 'open', 'high', 'low']]
 
     # Sort data by date
-    data.sort_values('Date', inplace=True)
+    data.sort_values('date', inplace=True)
 
+    print(f"DATA: {data}")
     # Calculate percentage changes
     data = calculate_percentage_changes(data)
 
     # Calculate day types and weekday
-    data['Day_Type_1'] = calculate_day_type_1(data)
-    data['Day_Type_2'] = calculate_day_type_2(data)
-    data['Weekday'] = data['Date'].dt.day_name()
+    data['day_type_1'] = calculate_day_type_1(data)
+    data['day_type_2'] = calculate_day_type_2(data)
+    data['weekday'] = data['date'].dt.day_name()
 
-    # Insert the new data into the database
-    data.to_sql(table_name, conn, if_exists='append', index=False)
+    data_to_insert = data.iloc[1:]
+
+    # Create SQLAlchemy engine and insert data
+    engine = create_engine(os.environ[db_path_str])
+    data_to_insert.to_sql(table_name, engine, if_exists='append', index=False)
     print(f"New data for {market_name} appended to the database.")
 
 
@@ -168,7 +175,7 @@ def remove_outliers(df, col, threshold=3):
     return df
 
 
-def compute_and_store_seasonality(market_name, conn):
+def compute_and_store_seasonality(market_name, engine):
     table_name = market_name.lower().replace(' ', '_') + '_ohlc'
 
     # Define the table names for storing seasonal patterns
@@ -181,42 +188,42 @@ def compute_and_store_seasonality(market_name, conn):
 
         query = f"""
         SELECT * FROM {table_name}
-        WHERE Date BETWEEN '{start_date.strftime('%Y-%m-%d')}' AND '{end_date.strftime('%Y-%m-%d')}'
-        ORDER BY Date ASC
+        WHERE date BETWEEN '{start_date.strftime('%Y-%m-%d')}' AND '{end_date.strftime('%Y-%m-%d')}'
+        ORDER BY date ASC
         """
 
-        df = pd.read_sql(query, conn)
-        df['Date'] = pd.to_datetime(df['Date'])
+        df = pd.read_sql(query, engine)
+        df['date'] = pd.to_datetime(df['date'])
 
         # Ensure numerical columns are in the correct forma
-        df['Close'] = pd.to_numeric(df['Close'], errors='coerce')
-        df['Open'] = pd.to_numeric(df['Open'], errors='coerce')
-        df['High'] = pd.to_numeric(df['High'], errors='coerce')
-        df['Low'] = pd.to_numeric(df['Low'], errors='coerce')
+        df['close'] = pd.to_numeric(df['close'], errors='coerce')
+        df['open'] = pd.to_numeric(df['open'], errors='coerce')
+        df['high'] = pd.to_numeric(df['high'], errors='coerce')
+        df['low'] = pd.to_numeric(df['low'], errors='coerce')
 
         # Drop rows with NaN values in critical columns
-        df.dropna(subset=['Close'], inplace=True)
+        df.dropna(subset=['close'], inplace=True)
 
         # Sort by date to ensure correct order
-        df.sort_values('Date', inplace=True)
+        df.sort_values('date', inplace=True)
 
         # Calculate day of the year
-        df['Day_of_Year'] = df['Date'].dt.dayofyear
+        df['day_of_year'] = df['date'].dt.dayofyear
 
         # Calculate percentage change for seasonality
-        df['Pct_Change'] = df['Close'].pct_change() * 100
+        df['pct_change'] = df['close'].pct_change() * 100
 
         # Round the seasonal percentage change to 2 decimal places
-        df['Pct_Change'] = df['Pct_Change'].round(2)
+        df['pct_change'] = df['pct_change'].round(2)
 
         # Remove 3 std outliers from the calculation
-        df = remove_outliers(df, 'Pct_Change', threshold=3)
+        df = remove_outliers(df, 'pct_change', threshold=3)
 
         # Group by day of the year and calculate average percentage change
-        avg_pct_change = df.groupby('Day_of_Year')['Pct_Change'].mean()
+        avg_pct_change = df.groupby('day_of_year')['pct_change'].mean()
 
         # Ensure all days are included
-        all_days = pd.DataFrame(index=np.arange(1, 368), columns=['Pct_Change'])  # 1 to 367, to account for leap year
+        all_days = pd.DataFrame(index=np.arange(1, 368), columns=['pct_change'])  # 1 to 367, to account for leap year
         avg_pct_change = avg_pct_change.reindex(all_days.index).fillna(0)  # Fill missing days with 0
 
         # Calculate cumulative sum
@@ -230,24 +237,27 @@ def compute_and_store_seasonality(market_name, conn):
         indexed_cum_sum = 100 * (cum_sum - min_value) / (max_value - min_value)
 
         # Create the table if it doesn't exist
-        conn.execute(f"""
-        CREATE TABLE IF NOT EXISTS {seasonality_table_name} (
-            Day_of_Year INTEGER PRIMARY KEY,
-            Indexed_Cumulative_Percent_Change REAL
-        )
-        """)
+        with engine.connect() as conn:
+            conn.execute(text(f"""
+                CREATE TABLE IF NOT EXISTS {seasonality_table_name} (
+                    day_of_year INTEGER PRIMARY KEY,
+                    indexed_cumulative_percent_change REAL
+                )
+            """))
 
-        # Insert or replace the indexed cumulative percentage change data
-        for day, value in indexed_cum_sum.items():
-            conn.execute(f"""
-            INSERT OR REPLACE INTO {seasonality_table_name} (Day_of_Year, Indexed_Cumulative_Percent_Change)
-            VALUES (?, ?)
-            """, (day, value))
+            # Insert or replace the indexed cumulative percentage change data
+            for day, value in indexed_cum_sum.items():
+                conn.execute(text(f"""
+                    INSERT INTO {seasonality_table_name} (day_of_year, indexed_cumulative_percent_change)
+                    VALUES (:day_of_year, :indexed_cumulative_percent_change)
+                    ON CONFLICT (day_of_year)
+                    DO UPDATE SET indexed_cumulative_percent_change = EXCLUDED.indexed_cumulative_percent_change
+                """), {"day_of_year": day, "indexed_cumulative_percent_change": value})
 
         print(f"Seasonality data for {market_name} for {years} years stored in the database.")
 
 
-def collect_pct_changes(conn, market_tickers, days=180):
+def collect_pct_changes(engine, market_tickers, days=180):
     """
     Collects close-to-close percentage changes for all markets over the last specified days.
     """
@@ -260,89 +270,99 @@ def collect_pct_changes(conn, market_tickers, days=180):
         table_name = market_name.lower().replace(' ', '_') + '_ohlc'
 
         query = f"""
-        SELECT Date, Close_Close_Pct_Change FROM {table_name}
-        WHERE Date BETWEEN '{start_date.strftime('%Y-%m-%d')}' AND '{end_date.strftime('%Y-%m-%d')}'
-        ORDER BY Date ASC
+        SELECT date, close_close_pct_change FROM {table_name}
+        WHERE date BETWEEN '{start_date.strftime('%Y-%m-%d')}' AND '{end_date.strftime('%Y-%m-%d')}'
+        ORDER BY date ASC
         """
-        df = pd.read_sql(query, conn, parse_dates=['Date'])
+        df = pd.read_sql(query, engine, parse_dates=['date'])
 
         # Only store percentage changes
-        pct_changes[market_name] = df.set_index('Date')['Close_Close_Pct_Change']
+        pct_changes[market_name] = df.set_index('date')['close_close_pct_change']
 
     # Combine all percentage changes into one DataFrame with markets as columns
     pct_changes_df = pd.DataFrame(pct_changes)
     return pct_changes_df
 
 
-def compute_and_store_correlations(conn, market_tickers):
+def compute_and_store_correlations(engine, market_tickers):
     """
     Calculate correlations between markets for 180 days and 15 years.
     """
     # Get data for 180 days and 15 years
-    pct_changes_180d = collect_pct_changes(conn, market_tickers, days=180)
-    pct_changes_15y = collect_pct_changes(conn, market_tickers, days=365 * 15)
+    pct_changes_180d = collect_pct_changes(engine, market_tickers, days=180)
+    pct_changes_15y = collect_pct_changes(engine, market_tickers, days=365 * 15)
 
     # Calculate correlations
     correlation_180d = pct_changes_180d.corr()
     correlation_15y = pct_changes_15y.corr()
 
     # Store in the database
-    store_correlation_in_db(correlation_180d, conn, "correlation_180_days")
-    store_correlation_in_db(correlation_15y, conn, "correlation_15_years")
+    store_correlation_in_db(correlation_180d, engine, "correlation_180_days")
+    store_correlation_in_db(correlation_15y, engine, "correlation_15_years")
     print("Correlation data stored successfully.")
 
 
-def store_correlation_in_db(correlation_df, conn, table_name):
-    # Create the correlation table if it doesn't exist
-    create_table_query = f"""
-    CREATE TABLE IF NOT EXISTS {table_name} (
-        market_1 TEXT,
-        market_2 TEXT,
-        correlation REAL
-    )
-    """
-    conn.execute(create_table_query)
+def store_correlation_in_db(correlation_df, engine, table_name):
 
-    # Clear existing data in the table
-    conn.execute(f"DELETE FROM {table_name}")
+    with engine.connect() as conn:
+        trans = conn.begin()
 
-    # Insert new correlation data
-    for market_pair, correlation in correlation_df.stack().items():
-        conn.execute(
-            f"INSERT INTO {table_name} (market_1, market_2, correlation) VALUES (?, ?, ?)",
-            (market_pair[0], market_pair[1], correlation)
-        )
+        try:
+            # Create the correlation table if it doesn't exist
+            create_table_query = f"""
+            CREATE TABLE IF NOT EXISTS {table_name} (
+                market_1 TEXT,
+                market_2 TEXT,
+                correlation REAL
+            )
+            """
+            conn.execute(text(create_table_query))
 
-    conn.commit()
+            # Clear existing data in the table
+            conn.execute(text(f"DELETE FROM {table_name}"))
+
+            # Insert new correlation data using parameterized queries
+            insert_query = text(f"""
+                            INSERT INTO {table_name} (market_1, market_2, correlation)
+                            VALUES (:market_1, :market_2, :correlation)
+                        """)
+
+            for market_pair, correlation in correlation_df.stack().items():
+                conn.execute(
+                    insert_query,
+                    {"market_1": market_pair[0], "market_2": market_pair[1], "correlation": correlation}
+                )
+
+            # Commit the transaction
+            trans.commit()
+            print(f"Correlation data stored in table '{table_name}'.")
+        except Exception as e:
+            # Rollback in case of error
+            trans.rollback()
+            print(f"Error storing correlation data: {e}")
 
 
 def main():
-    # Connect to the SQLite database
-    conn = sqlite3.connect('../data/markets_data.db')
+    # Connect to the database
+    engine = create_engine(os.environ[db_path_str])
 
     # Iterate over each market and fetch the data for all markets:
-    for market_name, ticker in market_tickers.items():
-        print(f"Fetching OHLC data for {market_name}...")
-        fetch_ohlc_for_2024(ticker, market_name, conn)
-
-        # Compute and store seasonal patterns for all
-        compute_and_store_seasonality(market_name, conn)
-
-    # For one market:
-    # fetch_ohlc_for_2024('ETH=F', 'Ethereum', conn)
-
-    # For one:
-    # compute_and_store_seasonality('Ethereum', conn)
+    # for market_name, ticker in market_tickers.items():
+    #     print(f"Fetching OHLC data for {market_name}...")
+    #     fetch_ohlc_for_2024(ticker, market_name, conn)
+    #
+    #     # Compute and store seasonal patterns for all
+    #     compute_and_store_seasonality(market_name, conn)
 
     # For all
-    compute_and_store_correlations(conn, market_tickers)
+    compute_and_store_correlations(engine, market_tickers)
+
+    # For one market:
+    fetch_ohlc_for_2024('ETH=F', 'Ethereum', engine)
 
     # For one:
-    # compute_and_store_correlations(conn, market_tickers)
+    compute_and_store_seasonality('Ethereum', engine)
 
-    # Commit the changes and close the database connection
-    conn.commit()
-    conn.close()
 
 
 if __name__ == "__main__":
