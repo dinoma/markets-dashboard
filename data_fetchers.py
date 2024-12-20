@@ -9,10 +9,6 @@ from sqlalchemy import create_engine, text
 import os
 from urllib.parse import urlparse
 
-# Set the database path
-# db_path = os.environ[db_path_str]
-# Create SQLAlchemy Engine
-# engine = create_engine(db_path)
 db_url = os.environ.get(db_path_str).replace("postgres://", "postgresql+psycopg2://", 1)
 engine = create_engine(db_url)
 

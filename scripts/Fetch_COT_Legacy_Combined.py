@@ -1,12 +1,9 @@
 import requests
 import pandas as pd
 from sqlalchemy import create_engine, text
-from pathlib import Path
 from config import market_codes, db_path_str
 import os
 
-# db_path = os.environ[db_path_str]
-# engine = create_engine(db_path)
 
 db_url = os.environ.get(db_path_str)
 if not db_url:
@@ -77,19 +74,26 @@ def filter_and_save_by_market(df, market_codes):
             # Filter new rows based on the latest found date in the report
             if latest_date:
                 latest_date = pd.to_datetime(latest_date)
+                filtered_df['report_date_as_yyyy_mm_dd'] = pd.to_datetime(filtered_df['report_date_as_yyyy_mm_dd'])
                 filtered_df = filtered_df[filtered_df['report_date_as_yyyy_mm_dd'] > latest_date]
 
             if 'report_date_as_yyyy_mm_dd' in filtered_df.columns:
                 filtered_df['report_date_as_yyyy_mm_dd'] = filtered_df['report_date_as_yyyy_mm_dd'].dt.strftime(
                     '%Y-%m-%d')
 
-            # Save data to database
+            # Save data to the database
             if not filtered_df.empty:
+                # Reformat to ensure the database always receives consistent format
+                filtered_df['report_date_as_yyyy_mm_dd'] = pd.to_datetime(
+                    filtered_df['report_date_as_yyyy_mm_dd']
+                ).dt.strftime('%Y-%m-%d %H:%M:%S')
+
                 try:
                     filtered_df.to_sql(table_name, conn, if_exists='append', index=False)
                     conn.commit()
+                    print(f"Saved {len(filtered_df)} rows to {table_name}.")
                 except Exception as e:
-                    print(f"Couldn't write data into {table_name}")
+                    print(f"Error saving data to {table_name}: {e}")
 
 
 def main():
