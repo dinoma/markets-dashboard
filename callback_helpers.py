@@ -1181,7 +1181,9 @@ def create_distributions(day_data, day_type="None"):
 
         # Update layout for styling
         distributions[key].update_layout(
-            xaxis_title=f"{col.replace('_Pct_Change', '').replace('_', ' ')} % Change",
+            xaxis_title=f"{col.replace('_pct_change', ' % Change')
+            .replace('open', 'Open').replace('low', 'Low').replace('high', 'High').replace('close', 'Close')
+            .replace('_', ' ')}",
             yaxis_title='Frequency',
             plot_bgcolor='#1e1e1e',
             paper_bgcolor='#1e1e1e',
@@ -1842,7 +1844,7 @@ def update_cumulative_chart_layout(fig, title):
     """
     fig.update_layout(
         title=title,
-        xaxis_title='date',
+        xaxis_title='Date',
         yaxis_title='Cumulative Return (%)',
         plot_bgcolor='#1e1e1e',  # Same dark background as distribution charts
         paper_bgcolor='#1e1e1e',  # Same dark paper background

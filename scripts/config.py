@@ -16,7 +16,7 @@ COLORS = {
 }
 
 DEFAULT_MARKET = 'SP 500'
-DEFAULT_YEAR = 2024
+DEFAULT_YEAR = 2025
 
 # Market tickers used by yfinance
 market_tickers = {

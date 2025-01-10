@@ -116,7 +116,7 @@ def fetch_ohlc_for_2024(ticker, market_name, engine):
     if last_date:
         start_date = last_date.strftime('%Y-%m-%d')  # last_date + timedelta(days=1)
     else:
-        start_date = "2024-01-01"  # Start from the beginning if the table is empty
+        start_date = "2025-01-01"  # Start from the beginning if the table is empty
 
     # Define the end date as yesterday
     end_date = (datetime.now()).strftime('%Y-%m-%d')

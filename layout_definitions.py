@@ -113,10 +113,10 @@ def create_analysis_section():
                                     end_date_placeholder_text="End Period",
                                     display_format='MMM-DD',
                                     month_format='MMMM',
-                                    min_date_allowed='2024-01-01',
-                                    max_date_allowed='2024-12-31',
-                                    start_date='2024-01-01',  # Default to None or a specific start date
-                                    end_date='2024-12-31',  # Default to None or a specific end date
+                                    min_date_allowed='2025-01-01',
+                                    max_date_allowed='2025-12-31',
+                                    start_date='2025-01-01',  # Default to None or a specific start date
+                                    end_date='2025-12-31',  # Default to None or a specific end date
                                     clearable=False,
                                 )
                             ], style={'width': '400px', 'display': 'flex', 'flexDirection': 'column',
@@ -1712,7 +1712,7 @@ def create_layout(app):
                                 # html.Button('Previous Year', id='prev-year-button', n_clicks=0),
                                 # html.Button('Next Year', id='next-year-button', n_clicks=0)
                             ], style={'display': 'flex', 'justifyContent': 'space-between', 'marginTop': '10px'}),
-                            dcc.Store(id='current-year', data=2024),
+                            dcc.Store(id='current-year', data=2025),
                             dcc.Store(id='stored-market', data=DEFAULT_MARKET),
                             dcc.Store(id='active-subplots', data=[]),  # Track active subplots dynamically
                         ]
@@ -2150,7 +2150,7 @@ def create_layout(app):
                                 # html.Button('Previous Year', id='prev-year-button', n_clicks=0),
                                 # html.Button('Next Year', id='next-year-button', n_clicks=0)
                             ], style={'display': 'flex', 'justifyContent': 'space-between', 'marginTop': '10px'}),
-                            dcc.Store(id='current-year', data=2024),
+                            dcc.Store(id='current-year', data=2025),
                             dcc.Store(id='stored-market', data=DEFAULT_MARKET),
                             dcc.Store(id='active-subplots', data=[]),  # Track active subplots dynamically
                         ]
