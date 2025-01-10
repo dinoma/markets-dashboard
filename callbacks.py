@@ -302,7 +302,14 @@ def register_callbacks(app):
             return fig
 
         # Initial Range Configuration
-        initial_x_range = [ohlc_df['date'].iloc[0], ohlc_df['date'].iloc[-1]]
+        if len(ohlc_df) < 30:
+            end_date = pd.Timestamp(f"{current_year}-03-31")
+        elif len(ohlc_df) < 60:
+            end_date = pd.Timestamp(f"{current_year}-06-30")
+        else:
+            end_date = pd.Timestamp(f"{current_year}-12-31")
+
+        initial_x_range = [ohlc_df['date'].iloc[0], end_date]  # ohlc_df['date'].iloc[-1]
         initial_y_range = [ohlc_df["low"].min(), ohlc_df["high"].max()]
 
         # Determine if reset is needed (via year change)
