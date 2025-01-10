@@ -1117,10 +1117,10 @@ def create_layout(app):
             html.Div(
                 children=[
                     html.Div([
-                        html.Button('Prev. Market', id='prev-market-button', n_clicks=0, className='above-chart-button'),
-                        html.Button('Next Market', id='next-market-button', n_clicks=0, className='above-chart-button'),
-                        html.Button('Prev. Year', id='prev-year-button', n_clicks=0, className='above-chart-button'),
-                        html.Button('Next Year', id='next-year-button', n_clicks=0, className='above-chart-button')
+                        html.Button('Prev. Market', id='prev-market-button-main', n_clicks=0, className='above-chart-button'),
+                        html.Button('Next Market', id='next-market-button-main', n_clicks=0, className='above-chart-button'),
+                        html.Button('Prev. Year', id='prev-year-button-main', n_clicks=0, className='above-chart-button'),
+                        html.Button('Next Year', id='next-year-button-main', n_clicks=0, className='above-chart-button')
                     ], style={'display': 'flex', 'justifyContent': 'space-between', 'marginTop': '10px', 'gap': '10px'}),
 
 
@@ -1382,12 +1382,12 @@ def create_layout(app):
                                         searchable=False
                                     ),
                                     html.Div([
-                                        html.Button('Prev. Market', id='prev-market-button', n_clicks=0),
-                                        html.Button('Next Market', id='next-market-button', n_clicks=0),
+                                        html.Button('Prev. Market', id='prev-market-button-right-panel', n_clicks=0),
+                                        html.Button('Next Market', id='next-market-button-right-panel', n_clicks=0),
                                     ], style={'display': 'flex', 'justifyContent': 'space-between', 'marginTop': '10px'}),
                                     html.Div([
-                                        html.Button('Prev. Year', id='prev-year-button', n_clicks=0),
-                                        html.Button('Next Year', id='next-year-button', n_clicks=0)
+                                        html.Button('Prev. Year', id='prev-year-button-right-panel', n_clicks=0),
+                                        html.Button('Next Year', id='next-year-button-right-panel', n_clicks=0)
                                     ], style={'display': 'flex', 'justifyContent': 'space-between', 'marginTop': '10px'}),
                                 ],
                                 style={'marginBottom': '10px'}
@@ -1726,11 +1726,11 @@ def create_layout(app):
             html.Div(
                 children=[
                     html.Div([
-                        html.Button('Prev. Market', id='prev-market-button', n_clicks=0,
+                        html.Button('Prev. Market', id='prev-market-button-main', n_clicks=0,
                                     className='above-chart-button'),
-                        html.Button('Next Market', id='next-market-button', n_clicks=0, className='above-chart-button'),
-                        html.Button('Prev. Year', id='prev-year-button', n_clicks=0, className='above-chart-button'),
-                        html.Button('Next Year', id='next-year-button', n_clicks=0, className='above-chart-button')
+                        html.Button('Next Market', id='next-market-button-main', n_clicks=0, className='above-chart-button'),
+                        html.Button('Prev. Year', id='prev-year-button-main', n_clicks=0, className='above-chart-button'),
+                        html.Button('Next Year', id='next-year-button-main', n_clicks=0, className='above-chart-button')
                     ], style={'display': 'flex', 'justifyContent': 'space-between', 'marginTop': '10px',
                               'gap': '10px'}),
 
@@ -1817,13 +1817,13 @@ def create_layout(app):
                                         searchable=False,
                                     ),
                                     html.Div([
-                                        html.Button('Prev. Market', id='prev-market-button', n_clicks=0),
-                                        html.Button('Next Market', id='next-market-button', n_clicks=0),
+                                        html.Button('Prev. Market', id='prev-market-button-right-panel', n_clicks=0),
+                                        html.Button('Next Market', id='next-market-button-right-panel', n_clicks=0),
                                     ], style={'display': 'flex', 'justifyContent': 'space-between',
                                               'marginTop': '10px'}),
                                     html.Div([
-                                        html.Button('Prev. Year', id='prev-year-button', n_clicks=0),
-                                        html.Button('Next Year', id='next-year-button', n_clicks=0)
+                                        html.Button('Prev. Year', id='prev-year-button-right-panel', n_clicks=0),
+                                        html.Button('Next Year', id='next-year-button-right-panel', n_clicks=0)
                                     ], style={'display': 'flex', 'justifyContent': 'space-between',
                                               'marginTop': '10px'}),
                                 ],

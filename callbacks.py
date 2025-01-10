@@ -621,16 +621,19 @@ def register_callbacks(app):
 
     @app.callback(
         Output('current-year', 'data'),
-        [Input('prev-year-button', 'n_clicks'),
-         Input('next-year-button', 'n_clicks')],
+        [Input('prev-year-button-main', 'n_clicks'),
+         Input('next-year-button-main', 'n_clicks'),
+         Input('prev-year-button-right-panel', 'n_clicks'),
+         Input('next-year-button-right-panel', 'n_clicks'),
+         ],
         [State('current-year', 'data')]
     )
-    def update_year(n_clicks_prev, n_clicks_next, current_year):
+    def update_year(n_clicks_main_prev, n_clicks_main_next, n_clicks_right_panel_prev, n_clicks_right_panel_next, current_year):
         if ctx.triggered:
             button_id = ctx.triggered[0]['prop_id'].split('.')[0]
-            if 'prev-year-button' in button_id:
+            if 'prev-year-button-main' in button_id or 'prev-year-button-right-panel' in button_id:
                 return max(1994, current_year - 1)
-            elif 'next-year-button' in button_id:
+            elif 'next-year-button-main' in button_id or 'next-year-button-right-panel' in button_id:
                 return min(2025, current_year + 1)
         return current_year
 
@@ -639,11 +642,16 @@ def register_callbacks(app):
         [Output('stored-market', 'data'),
          Output('market-dropdown', 'value')],  # Add this Output to update the dropdown's value
         [Input('market-dropdown', 'value'),
-         Input('prev-market-button', 'n_clicks'),
-         Input('next-market-button', 'n_clicks')],
+         Input('prev-market-button-main', 'n_clicks'),
+         Input('next-market-button-main', 'n_clicks'),
+         Input('prev-market-button-right-panel', 'n_clicks'),
+         Input('next-market-button-right-panel', 'n_clicks'),
+         ],
         [State('stored-market', 'data')]
     )
-    def update_stored_market(selected_market, n_clicks_prev, n_clicks_next, current_market):
+    def update_stored_market(selected_market, n_clicks_main_prev, n_clicks_main_next,
+                             n_clicks_right_panel_prev, n_clicks_right_panel_next, current_market):
+
         # Determine which input triggered the callback
         triggered_input = ctx.triggered[0]['prop_id'].split('.')[0]
 
@@ -654,14 +662,17 @@ def register_callbacks(app):
             return new_market, selected_market  # Return both the updated stored-market and the dropdown value
 
         # Handle Previous and Next Market button clicks
-        elif 'prev-market-button' in triggered_input or 'next-market-button' in triggered_input:
+        elif ('prev-market-button-main' in triggered_input
+              or 'next-market-button-main' in triggered_input
+              or 'prev-market-button-right-panel' in triggered_input
+              or 'next-market-button-right-panel' in triggered_input):
             markets = list(market_tickers.keys())  # Keep the original order from config.py
             current_index = markets.index(current_market) if current_market in markets else 0
 
-            if 'prev-market-button' in triggered_input:
+            if 'prev-market-button-main' in triggered_input or 'prev-market-button-right-panel' in triggered_input:
                 # Move to the previous market
                 new_index = (current_index - 1) % len(markets)
-            elif 'next-market-button' in triggered_input:
+            elif 'next-market-button-main' in triggered_input or 'next-market-button-right-panel' in triggered_input:
                 # Move to the next market
                 new_index = (current_index + 1) % len(markets)
             else:
