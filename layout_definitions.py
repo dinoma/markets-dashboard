@@ -65,13 +65,13 @@ def create_analysis_section_factory(section_id, title):
                 html.Div(dcc.Graph(id=f"{section_id}-open-close-dist", config={'displayModeBar': False, 'staticPlot': True}), style=CENTERED_HALF_WIDTH),
             ]),
             html.Div([
-                html.Div(dcc.Graph(id=f"{section_id}-low-vs-prev-dist", config={'displayModeBar': False, 'staticPlot': True}), style=HALF_WIDTH),
-                html.Div(dcc.Graph(id=f"{section_id}-high-vs-prev-dist", config={'displayModeBar': False, 'staticPlot': True}), style=HALF_WIDTH),
+                html.Div(dcc.Graph(id=f"{section_id}-low-vs-prev-low-dist", config={'displayModeBar': False, 'staticPlot': True}), style=HALF_WIDTH),
+                html.Div(dcc.Graph(id=f"{section_id}-high-vs-prev-high-dist", config={'displayModeBar': False, 'staticPlot': True}), style=HALF_WIDTH),
             ], style=FLEX_CONTAINER_STYLE),
             create_day_analysis_scatter_legend(),
             html.Div([
-                html.Div(dcc.Graph(id=f"{section_id}-scatter-1", config={'displayModeBar': False, 'staticPlot': True}), style=HALF_WIDTH),
-                html.Div(dcc.Graph(id=f"{section_id}-scatter-2", config={'displayModeBar': False, 'staticPlot': True}), style=HALF_WIDTH),
+                html.Div(dcc.Graph(id=f"{section_id}-open-low-vs-close-scatter", config={'displayModeBar': False, 'staticPlot': True}), style=HALF_WIDTH),
+                html.Div(dcc.Graph(id=f"{section_id}-open-low-vs-high-scatter", config={'displayModeBar': False, 'staticPlot': True}), style=HALF_WIDTH),
             ], style=FLEX_CONTAINER_STYLE)
         ]
     )
@@ -710,132 +710,19 @@ def create_dup_analysis_section():
 
 
 def create_ddown_analysis_section():
-    """
-    Creates a section for D-UP day analysis including distributions and scatter plots.
-
-    Returns:
-        html.Div: The layout containing input fields and result placeholders for PD-H day analysis.
-    """
-    return html.Div(style={'backgroundColor': '#1e1e1e', 'color': 'white',
-                           'fontFamily': "'Press Start 2P', monospace", 'fontSize': '10px'},
-                    children=[
-                        html.H3("D-DN Day Analysis", style={'textAlign': 'center'}),
-                        html.Div(create_day_analysis_dist_legend()),
-
-                        # Distribution Plots
-                        html.Div([
-                            html.Div([
-                                dcc.Graph(id='ddown-open-low-dist',
-                                          config={'displayModeBar': False, 'staticPlot': True}),
-                            ], style={'width': '50%', 'display': 'inline-block'}),
-
-                            html.Div([
-                                dcc.Graph(id='ddown-open-high-dist',
-                                          config={'displayModeBar': False, 'staticPlot': True}),
-                            ], style={'width': '50%', 'display': 'inline-block'}),
-
-                        ], style={'display': 'flex'}),
-
-                        # Open-Close distribution
-                        html.Div([
-                            html.Div([
-                                dcc.Graph(id='ddown-open-close-dist',
-                                          config={'displayModeBar': False, 'staticPlot': True}),
-                            ], style={'width': '50%', 'display': 'block', 'margin': '0 auto'}),
-                        ]),
-
-                        # Low vs Prev Day Low and High vs Prev Day High distribution
-                        html.Div([
-                            html.Div([
-                                dcc.Graph(id='ddown-low-vs-prev-low-dist',
-                                          config={'displayModeBar': False, 'staticPlot': True}),
-                            ], style={'width': '50%', 'display': 'inline-block'}),
-
-                            html.Div([
-                                dcc.Graph(id='ddown-high-vs-prev-high-dist',
-                                          config={'displayModeBar': False, 'staticPlot': True}),
-                            ], style={'width': '50%', 'display': 'inline-block'}),
-
-                        ]),
-
-                        # Scatter Plots
-                        html.Div(create_day_analysis_scatter_legend()),
-
-                        html.Div([
-
-                            html.Div([
-                                dcc.Graph(id='ddown-open-low-vs-close-scatter',
-                                          config={'displayModeBar': False, 'staticPlot': True}),
-                            ], style={'width': '50%', 'display': 'inline-block'}),
-
-                            html.Div([
-                                dcc.Graph(id='ddown-open-low-vs-high-scatter',
-                                          config={'displayModeBar': False, 'staticPlot': True}),
-                            ], style={'width': '50%', 'display': 'inline-block'}),
-
-                        ], style={'display': 'flex'}),
-
-                    ])
+    """Create D-DN Day Analysis section using factory"""
+    return create_analysis_section_factory(
+        section_id="ddown",
+        title="D-DN Day Analysis"
+    )
 
 
 def create_pdh_analysis_section():
-    """
-    Creates a section for PD-H day analysis including distributions and scatter plots.
-
-    Returns:
-        html.Div: The layout containing input fields and result placeholders for PD-H day analysis.
-    """
-    return html.Div(style={'backgroundColor': '#1e1e1e', 'color': 'white',
-                           'fontFamily': "'Press Start 2P', monospace", 'fontSize': '10px'},
-                    children=[
-                        html.H3("PD-H Day Analysis", style={'textAlign': 'center'}),
-                        html.Div(create_day_analysis_dist_legend()),
-
-                        # Distribution Plots
-                        html.Div([
-                            html.Div([
-                                dcc.Graph(id='pdh-open-low-dist', config={'displayModeBar': False, 'staticPlot': True}),
-                            ], style={'width': '50%', 'display': 'inline-block'}),
-
-                            html.Div([
-                                dcc.Graph(id='pdh-open-high-dist',
-                                          config={'displayModeBar': False, 'staticPlot': True}),
-                            ], style={'width': '50%', 'display': 'inline-block'}),
-
-                        ], style={'display': 'flex'}),
-
-                        # High vs Previous High Distribution
-                        html.Div([
-                            html.Div([
-                                dcc.Graph(id='pdh-open-close-dist',
-                                          config={'displayModeBar': False, 'staticPlot': True}),
-                            ], style={'width': '50%', 'display': 'inline-block'}),
-
-                            html.Div([
-                                dcc.Graph(id='pdh-high-vs-prev-high-dist',
-                                          config={'displayModeBar': False, 'staticPlot': True}),
-                            ], style={'width': '50%', 'display': 'inline-block'}),
-
-                        ]),
-
-                        # Scatter Plots
-                        html.Div(create_day_analysis_scatter_legend()),
-
-                        html.Div([
-
-                            html.Div([
-                                dcc.Graph(id='pdh-open-low-vs-close-scatter',
-                                          config={'displayModeBar': False, 'staticPlot': True}),
-                            ], style={'width': '50%', 'display': 'inline-block'}),
-
-                            html.Div([
-                                dcc.Graph(id='pdh-open-low-vs-high-scatter',
-                                          config={'displayModeBar': False, 'staticPlot': True}),
-                            ], style={'width': '50%', 'display': 'inline-block'}),
-
-                        ], style={'display': 'flex'}),
-
-                    ])
+    """Create PD-H Day Analysis section using factory"""
+    return create_analysis_section_factory(
+        section_id="pdh",
+        title="PD-H Day Analysis"
+    )
 
 
 def create_pdl_analysis_section():
