@@ -15,6 +15,100 @@ ANALYSIS_SECTION_STYLE = {
 }
 
 SECTION_TITLE_STYLE = {'textAlign': 'center'}
+
+# Table Configuration
+TABLE_CONFIGS = {
+    'day_trading': {
+        'columns': [
+            {'name': 'Year', 'id': 'year'},
+            {'name': 'Total Days', 'id': 'Total Days'},
+            {'name': 'D UP', 'id': 'D UP'},
+            {'name': 'D UP %', 'id': 'D UP %'},
+            {'name': 'D DN', 'id': 'D DN'},
+            {'name': 'D DN %', 'id': 'D DN %'},
+            {'name': 'PD-H', 'id': 'PD-H'},
+            {'name': 'PD-H %', 'id': 'PD-H %'},
+            {'name': 'PD-L', 'id': 'PD-L'},
+            {'name': 'PD-L %', 'id': 'PD-L %'},
+            {'name': 'PD-HL', 'id': 'PD-HL'},
+            {'name': 'PD-HL %', 'id': 'PD-HL %'},
+            {'name': 'PD-nHL', 'id': 'PD-nHL'},
+            {'name': 'PD-nHL %', 'id': 'PD-nHL %'},
+        ],
+        'tooltips': {
+            "D UP": "Days where the Close was higher than the Open",
+            "D UP %": "Percentage of D UP days out of Total Days.\nD UP % + D DN % ≈ 100%",
+            "D DN": "Days where the Close was lower than the Open",
+            "D DN %": "Percentage of D-DN days out of Total Days.\nD UP % + D DN % ≈ 100%",
+            "PD-H": "Days where the High was not lower than the Previous Day's High and the Low was higher than the Previous Day's Low.",
+            "PD-H %": "Percentage of PD-H days out of Total Days.\nPD-H % + PD-L % + PD-HL % + PD-nHL ≈ 100%",
+            "PD-L": "Days where the Low was not higher than the Previous Day's Low and the High was lower than the Previous Day's High.",
+            "PD-L %": "Percentage of PD-L days out of Total Days.\nPD-H % + PD-L % + PD-HL % + PD-nHL ≈ 100%",
+            "PD-HL": "Days where the High was not lower than the Previous Day's High, and the Low was not higher than the Previous Day's Low (Outside bar)",
+            "PD-HL %": "Percentage of PD-HL days out of Total Days.\nPD-H % + PD-L % + PD-HL % + PD-nHL ≈ 100%",
+            "PD-nHL": "Days where the High was lower than the Previous Day's High and the Low was higher than the Previous Day's Low (Inside bar)",
+            "PD-nHL %": "Percentage of PD-nHL days out of Total Days.\nPD-H % + PD-L % + PD-HL % + PD-nHL ≈ 100%",
+        }
+    },
+    'day_trading_extended': {
+        'columns': [
+            {'name': 'Year', 'id': 'year'},
+            {'name': 'Total Days', 'id': 'Total Days'},
+            {'name': 'CaPD-H', 'id': 'CaPD-H'},
+            {'name': 'CaPD-H %', 'id': 'CaPD-H %'},
+            {'name': 'CbPD-L', 'id': 'CbPD-L'},
+            {'name': 'CbPD-L %', 'id': 'CbPD-L %'},
+            {'name': 'CaPD-HL', 'id': 'CaPD-HL'},
+            {'name': 'CaPD-HL %', 'id': 'CaPD-HL %'},
+            {'name': 'CbPD-HL', 'id': 'CbPD-HL'},
+            {'name': 'CbPD-HL %', 'id': 'CbPD-HL %'},
+            {'name': 'BISI', 'id': 'BISI'},
+            {'name': 'BISI %', 'id': 'BISI %'},
+            {'name': 'SIBI', 'id': 'SIBI'},
+            {'name': 'SIBI %', 'id': 'SIBI %'},
+        ],
+        'tooltips': {
+            "CaPD-H": "PD-H Days where Close was above the Previous Day's High.\n(Closed above PD-H)",
+            "CaPD-H %": "Percentage of CaPD-H days out of Total Days.",
+            "CbPD-L": "PD-L Days where Close was below the Previous Day's Low\n(Closed below the PD-L)",
+            "CbPD-L %": "Percentage of CbPD-L days out of Total Days.",
+            "CaPD-HL": "PD-HL Days where the Close was above the Previous Day's High\n(Closed above PD-HL)",
+            "CaPD-HL %": "Percentage of CaPD-HL days out of Total Days.",
+            "CbPD-HL": "PD-HL Days where the Close was below the Previous Day's Low\n(Closed below PD-HL)",
+            "CbPD-HL %": "Percentage of CbPD-HL days out of Total Days.",
+            "BISI": "Days where Previous Day's High is lower than the Next Day's Low\n(Buyside Imbalance Sellside Inefficiency)",
+            "BISI %": "Percentage of BISI days out of Total Days.",
+            "SIBI": "Days where Previous Day's Low is higher than the Next Day's High\n(Sellside Imbalance Buyside Inefficiency)",
+            "SIBI %": "Percentage of SIBI days out of Total Days.",
+        }
+    }
+}
+
+def create_stats_table_factory(table_id, table_type):
+    """Factory for creating standardized stats tables"""
+    config = TABLE_CONFIGS[table_type]
+    return dash.dash_table.DataTable(
+        id=table_id,
+        editable=False,
+        cell_selectable=False,
+        columns=config['columns'],
+        data=[],
+        tooltip_header=config['tooltips'],
+        style_header=TABLE_HEADER_STYLE,
+        style_cell=TABLE_CELL_STYLE,
+        css=[TABLE_TOOLTIP_STYLE],
+        tooltip_delay=300,
+        tooltip_duration=400000000,
+        style_table=TABLE_CONTAINER_STYLE,
+        style_data_conditional=[
+            {
+                'if': {'column_id': config['columns'][0]['id']},
+                'backgroundColor': '#333',
+                'color': 'white',
+                'fontWeight': 'bold'
+            }
+        ]
+    )
 FLEX_CONTAINER_STYLE = {'display': 'flex'}
 HALF_WIDTH = {'width': '50%', 'display': 'inline-block'}
 CENTERED_HALF_WIDTH = {'width': '50%', 'display': 'block', 'margin': '0 auto'}
@@ -352,88 +446,17 @@ def create_analysis_section():
 
 
 def create_day_trading_stats_section():
-    """
-    Creates the Day Trading Stats section of the app.
-    Returns:
-        html.Div: The layout containing the day trading stats table.
-    """
-    return html.Div(style={'backgroundColor': '#1e1e1e', 'color': 'white',
-                           'fontFamily': "'Press Start 2P', monospace", 'fontSize': '10px'},
-                    children=[
-                        html.H3("Day Trading Stats", style={'textAlign': 'center'}),
-                        dash.dash_table.DataTable(
-                            id='day-trading-stats-table',
-                            editable=False,
-                            cell_selectable=False,
-                            columns=[
-                                {'name': 'Year', 'id': 'year'},
-                                {'name': 'Total Days', 'id': 'Total Days'},
-                                {'name': 'D UP', 'id': 'D UP'},
-                                {'name': 'D UP %', 'id': 'D UP %'},
-                                {'name': 'D DN', 'id': 'D DN'},
-                                {'name': 'D DN %', 'id': 'D DN %'},
-                                {'name': 'PD-H', 'id': 'PD-H'},
-                                {'name': 'PD-H %', 'id': 'PD-H %'},
-                                {'name': 'PD-L', 'id': 'PD-L'},
-                                {'name': 'PD-L %', 'id': 'PD-L %'},
-                                {'name': 'PD-HL', 'id': 'PD-HL'},
-                                {'name': 'PD-HL %', 'id': 'PD-HL %'},
-                                {'name': 'PD-nHL', 'id': 'PD-nHL'},
-                                {'name': 'PD-nHL %', 'id': 'PD-nHL %'},
-                            ],
-                            data=[],
-                            tooltip_header={
-                                "D UP": "Days where the Close was higher than the Open",
-                                "D UP %": "Percentage of D UP days out of Total Days."
-                                          "\nD UP % + D DN % ≈ 100%",
-                                "D DN": "Days where the Close was lower than the Open",
-                                "D DN %": "Percentage of D-DN days out of Total Days."
-                                          "\nD UP % + D DN % ≈ 100%",
-                                "PD-H": "Days where the High was not lower than the Previous Day's High and "
-                                        "the Low was higher than the Previous Day's Low.",
-                                "PD-H %": "Percentage of PD-H days out of Total Days."
-                                          "\nPD-H % + PD-L % + PD-HL % + PD-nHL ≈ 100%",
-                                "PD-L": "Days where the Low was not higher than the Previous Day's Low and "
-                                        "the High was lower than the Previous Day's High.",
-                                "PD-L %": "Percentage of PD-L days out of Total Days."
-                                          "\nPD-H % + PD-L % + PD-HL % + PD-nHL ≈ 100%",
-                                "PD-HL": "Days where the High was not lower than the Previous Day's High, and "
-                                         "the Low was not higher than the Previous Day's Low (Outside bar)",
-                                "PD-HL %": "Percentage of PD-HL days out of Total Days."
-                                          "\nPD-H % + PD-L % + PD-HL % + PD-nHL ≈ 100%",
-                                "PD-nHL": "Days where the High was lower than the Previous Day's High and "
-                                          "the Low was higher than the Previous Day's Low (Inside bar)",
-                                "PD-nHL %": "Percentage of PD-nHL days out of Total Days."
-                                            "\nPD-H % + PD-L % + PD-HL % + PD-nHL ≈ 100%",
-                            },
-                            style_header={
-                                'backgroundColor': '#333',
-                                'color': 'white',
-                                'border': '1px solid white',
-                                'fontFamily': "'Press Start 2P', monospace",
-                                'fontSize': '10px'
-                            },
-                            style_cell={
-                                'backgroundColor': '#1e1e1e',
-                                'color': 'white',
-                                'border': '1px solid #444',
-                                'fontFamily': "'Press Start 2P', monospace",
-                                'fontSize': '10px',
-                                'textAlign': 'center'
-                            },
-                            css=[{
-                                'selector': '.dash-table-tooltip',
-                                'rule':
-                                    'background-color: #1e1e1e; '
-                                    'font-family: monospace; '
-                                    'color: white; '
-                                    'white-space: pre-line;'
-                            }],
-                            tooltip_delay=300,  # Delay before showing the tooltip
-                            tooltip_duration=400000000,  # Duration the tooltip stays visible
-                            style_table={'overflowX': 'scroll'}
-                        )
-                    ])
+    """Create Day Trading Stats section using factory"""
+    return html.Div(
+        style=ANALYSIS_SECTION_STYLE,
+        children=[
+            html.H3("Day Trading Stats", style=SECTION_TITLE_STYLE),
+            create_stats_table_factory(
+                table_id='day-trading-stats-table',
+                table_type='day_trading'
+            )
+        ]
+    )
 
 
 def create_day_trading_stats_weekday_section():
@@ -521,83 +544,17 @@ def create_day_trading_stats_weekday_section():
 
 
 def create_day_trading_stats_1_section():
-    """
-    Creates the Day Trading Stats section of the app.
-    Returns:
-        html.Div: The layout containing the day trading stats table.
-    """
-    return html.Div(style={'backgroundColor': '#1e1e1e', 'color': 'white',
-                           'fontFamily': "'Press Start 2P', monospace", 'fontSize': '10px'},
-                    children=[
-                        html.H3("Day Trading Stats - continuation", style={'textAlign': 'center'}),
-                        dash.dash_table.DataTable(
-                            id='day-trading-stats-1-table',
-                            editable=False,
-                            cell_selectable=False,
-                            columns=[
-                                {'name': 'Year', 'id': 'year'},
-                                {'name': 'Total Days', 'id': 'Total Days'},
-                                {'name': 'CaPD-H', 'id': 'CaPD-H'},
-                                {'name': 'CaPD-H %', 'id': 'CaPD-H %'},
-                                {'name': 'CbPD-L', 'id': 'CbPD-L'},
-                                {'name': 'CbPD-L %', 'id': 'CbPD-L %'},
-                                {'name': 'CaPD-HL', 'id': 'CaPD-HL'},
-                                {'name': 'CaPD-HL %', 'id': 'CaPD-HL %'},
-                                {'name': 'CbPD-HL', 'id': 'CbPD-HL'},
-                                {'name': 'CbPD-HL %', 'id': 'CbPD-HL %'},
-                                {'name': 'BISI', 'id': 'BISI'},
-                                {'name': 'BISI %', 'id': 'BISI %'},
-                                {'name': 'SIBI', 'id': 'SIBI'},
-                                {'name': 'SIBI %', 'id': 'SIBI %'},
-                            ],
-                            data=[],
-                            tooltip_header={
-                                "CaPD-H": "PD-H Days where Close was above the Previous Day's High."
-                                          "\n(Closed above PD-H)",
-                                "CaPD-H %": "Percentage of CaPD-H days out of Total Days.",
-                                "CbPD-L": "PD-L Days where Close was below the Previous Day's Low"
-                                          "\n(Closed below the PD-L)",
-                                "CbPD-L %": "Percentage of CbPD-L days out of Total Days.",
-                                "CaPD-HL": "PD-HL Days where the Close was above the Previous Day's High"
-                                           "\n(Closed above PD-HL)",
-                                "CaPD-HL %": "Percentage of CaPD-HL days out of Total Days.",
-                                "CbPD-HL": "PD-HL Days where the Close was below the Previous Day's Low"
-                                           "\n(Closed below PD-HL)",
-                                "CbPD-HL %": "Percentage of CbPD-HL days out of Total Days.",
-                                "BISI": "Days where Previous Day's High is lower than the Next Day's Low"
-                                        "\n(Buyside Imbalance Sellside Inefficiency)",
-                                "BISI %": "Percentage of BISI days out of Total Days.",
-                                "SIBI": "Days where Previous Day's Low is higher than the Next Day's High"
-                                        "\n(Sellside Imbalance Buyside Inefficiency)",
-                                "SIBI %": "Percentage of SIBI days out of Total Days.",
-                            },
-                            style_header={
-                                'backgroundColor': '#333',
-                                'color': 'white',
-                                'border': '1px solid white',
-                                'fontFamily': "'Press Start 2P', monospace",
-                                'fontSize': '10px'
-                            },
-                            style_cell={
-                                'backgroundColor': '#1e1e1e',
-                                'color': 'white',
-                                'border': '1px solid #444',
-                                'fontFamily': "'Press Start 2P', monospace",
-                                'fontSize': '10px',
-                                'textAlign': 'center'
-                            },
-                            css=[{
-                                'selector': '.dash-table-tooltip',
-                                'rule': 'background-color: #1e1e1e; '
-                                        'font-family: monospace; '
-                                        'color: white; '
-                                        'white-space: pre-line;'
-                            }],
-                            tooltip_delay=300,  # Delay before showing the tooltip
-                            tooltip_duration=400000000,  # Duration the tooltip stays visible
-                            style_table={'overflowX': 'scroll'}
-                        )
-                    ])
+    """Create Extended Day Trading Stats section using factory"""
+    return html.Div(
+        style=ANALYSIS_SECTION_STYLE,
+        children=[
+            html.H3("Day Trading Stats - continuation", style=SECTION_TITLE_STYLE),
+            create_stats_table_factory(
+                table_id='day-trading-stats-1-table',
+                table_type='day_trading_extended'
+            )
+        ]
+    )
 
 
 def create_day_trading_stats_1_weekday_section():
