@@ -6,6 +6,93 @@ from scripts.config import market_tickers
 from dotenv import load_dotenv
 import os
 
+# Style Constants
+ANALYSIS_SECTION_STYLE = {
+    'backgroundColor': '#1e1e1e', 
+    'color': 'white',
+    'fontFamily': "'Press Start 2P', monospace",
+    'fontSize': '10px'
+}
+
+SECTION_TITLE_STYLE = {'textAlign': 'center'}
+FLEX_CONTAINER_STYLE = {'display': 'flex'}
+HALF_WIDTH = {'width': '50%', 'display': 'inline-block'}
+CENTERED_HALF_WIDTH = {'width': '50%', 'display': 'block', 'margin': '0 auto'}
+
+TABLE_HEADER_STYLE = {
+    'backgroundColor': '#333',
+    'color': 'white',
+    'border': '1px solid white',
+    'fontFamily': "'Press Start 2P', monospace",
+    'fontSize': '10px'
+}
+
+TABLE_CELL_STYLE = {
+    'backgroundColor': '#1e1e1e',
+    'color': 'white',
+    'border': '1px solid #444',
+    'fontFamily': "'Press Start 2P', monospace",
+    'fontSize': '10px',
+    'textAlign': 'center'
+}
+
+TABLE_TOOLTIP_STYLE = {
+    'selector': '.dash-table-tooltip',
+    'rule': '''
+        background-color: #1e1e1e;
+        font-family: monospace;
+        color: white;
+        white-space: pre-line;
+    '''
+}
+
+TABLE_CONTAINER_STYLE = {'overflowX': 'scroll'}
+
+# Factory Functions
+def create_analysis_section_factory(section_id, title):
+    """Factory for creating analysis sections with consistent structure"""
+    return html.Div(
+        id=f"{section_id}-section",
+        style=ANALYSIS_SECTION_STYLE,
+        children=[
+            html.H3(title, style=SECTION_TITLE_STYLE),
+            create_day_analysis_dist_legend(),
+            html.Div([
+                html.Div(dcc.Graph(id=f"{section_id}-open-low-dist", config={'displayModeBar': False, 'staticPlot': True}), style=HALF_WIDTH),
+                html.Div(dcc.Graph(id=f"{section_id}-open-high-dist", config={'displayModeBar': False, 'staticPlot': True}), style=HALF_WIDTH),
+            ], style=FLEX_CONTAINER_STYLE),
+            html.Div([
+                html.Div(dcc.Graph(id=f"{section_id}-open-close-dist", config={'displayModeBar': False, 'staticPlot': True}), style=CENTERED_HALF_WIDTH),
+            ]),
+            html.Div([
+                html.Div(dcc.Graph(id=f"{section_id}-low-vs-prev-dist", config={'displayModeBar': False, 'staticPlot': True}), style=HALF_WIDTH),
+                html.Div(dcc.Graph(id=f"{section_id}-high-vs-prev-dist", config={'displayModeBar': False, 'staticPlot': True}), style=HALF_WIDTH),
+            ], style=FLEX_CONTAINER_STYLE),
+            create_day_analysis_scatter_legend(),
+            html.Div([
+                html.Div(dcc.Graph(id=f"{section_id}-scatter-1", config={'displayModeBar': False, 'staticPlot': True}), style=HALF_WIDTH),
+                html.Div(dcc.Graph(id=f"{section_id}-scatter-2", config={'displayModeBar': False, 'staticPlot': True}), style=HALF_WIDTH),
+            ], style=FLEX_CONTAINER_STYLE)
+        ]
+    )
+
+def create_table_factory(table_id, columns, tooltips):
+    """Standardized table creation"""
+    return dash.dash_table.DataTable(
+        id=table_id,
+        editable=False,
+        cell_selectable=False,
+        columns=columns,
+        data=[],
+        tooltip_header=tooltips,
+        style_header=TABLE_HEADER_STYLE,
+        style_cell=TABLE_CELL_STYLE,
+        css=[TABLE_TOOLTIP_STYLE],
+        tooltip_delay=300,
+        tooltip_duration=400000000,
+        style_table=TABLE_CONTAINER_STYLE
+    )
+
 # Load environment variables from .env file
 load_dotenv()
 user_tier = os.getenv("USER_TIER", "free")
