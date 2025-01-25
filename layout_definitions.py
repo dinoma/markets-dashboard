@@ -18,22 +18,33 @@ SECTION_TITLE_STYLE = {'textAlign': 'center'}
 
 # Table Configuration
 TABLE_CONFIGS = {
+    'base_analysis': {
+        'columns': [],
+        'tooltips': {
+            "D UP": "Days where the Close was higher than the Open",
+            "D UP %": "Percentage of D UP days out of Total Days.\nD UP % + D DN % ≈ 100%",
+            "D DN": "Days where the Close was lower than the Open",
+            "D DN %": "Percentage of D-DN days out of Total Days.\nD UP % + D DN % ≈ 100%",
+            "PD-H": "Days where the High was not lower than the Previous Day's High and the Low was higher than the Previous Day's Low.",
+            "PD-H %": "Percentage of PD-H days out of Total Days.\nPD-H % + PD-L % + PD-HL % + PD-nHL ≈ 100%",
+            "PD-L": "Days where the Low was not higher than the Previous Day's Low and the High was lower than the Previous Day's High.",
+            "PD-L %": "Percentage of PD-L days out of Total Days.\nPD-H % + PD-L % + PD-HL % + PD-nHL ≈ 100%",
+            "PD-HL": "Days where the High was not lower than the Previous Day's High, and the Low was not higher than the Previous Day's Low (Outside bar)",
+            "PD-HL %": "Percentage of PD-HL days out of Total Days.\nPD-H % + PD-L % + PD-HL % + PD-nHL ≈ 100%",
+            "PD-nHL": "Days where the High was lower than the Previous Day's High and the Low was higher than the Previous Day's Low (Inside bar)",
+            "PD-nHL %": "Percentage of PD-nHL days out of Total Days.\nPD-H % + PD-L % + PD-HL % + PD-nHL ≈ 100%",
+        }
+    },
     'day_trading': {
+        'base': 'base_analysis',
         'columns': [
             {'name': 'Year', 'id': 'year'},
             {'name': 'Total Days', 'id': 'Total Days'},
-            {'name': 'D UP', 'id': 'D UP'},
-            {'name': 'D UP %', 'id': 'D UP %'},
-            {'name': 'D DN', 'id': 'D DN'},
-            {'name': 'D DN %', 'id': 'D DN %'},
-            {'name': 'PD-H', 'id': 'PD-H'},
-            {'name': 'PD-H %', 'id': 'PD-H %'},
-            {'name': 'PD-L', 'id': 'PD-L'},
-            {'name': 'PD-L %', 'id': 'PD-L %'},
-            {'name': 'PD-HL', 'id': 'PD-HL'},
-            {'name': 'PD-HL %', 'id': 'PD-HL %'},
-            {'name': 'PD-nHL', 'id': 'PD-nHL'},
-            {'name': 'PD-nHL %', 'id': 'PD-nHL %'},
+            *[{'name': col, 'id': col} for col in [
+                'D UP', 'D UP %', 'D DN', 'D DN %', 
+                'PD-H', 'PD-H %', 'PD-L', 'PD-L %',
+                'PD-HL', 'PD-HL %', 'PD-nHL', 'PD-nHL %'
+            ]]
         ],
         'tooltips': {
             "D UP": "Days where the Close was higher than the Open",
@@ -83,37 +94,16 @@ TABLE_CONFIGS = {
         }
     },
     'day_trading_weekday': {
+        'base': 'base_analysis',
         'columns': [
             {'name': 'Weekday', 'id': 'weekday'},
             {'name': 'Total Days', 'id': 'Total Days'},
-            {'name': 'D UP', 'id': 'D UP'},
-            {'name': 'D UP %', 'id': 'D UP %'},
-            {'name': 'D DN', 'id': 'D DN'},
-            {'name': 'D DN %', 'id': 'D DN %'},
-            {'name': 'PD-H', 'id': 'PD-H'},
-            {'name': 'PD-H %', 'id': 'PD-H %'},
-            {'name': 'PD-L', 'id': 'PD-L'},
-            {'name': 'PD-L %', 'id': 'PD-L %'},
-            {'name': 'PD-HL', 'id': 'PD-HL'},
-            {'name': 'PD-HL %', 'id': 'PD-HL %'},
-            {'name': 'PD-nHL', 'id': 'PD-nHL'},
-            {'name': 'PD-nHL %', 'id': 'PD-nHL %'},
+            *[{'name': col, 'id': col} for col in [
+                'D UP', 'D UP %', 'D DN', 'D DN %', 
+                'PD-H', 'PD-H %', 'PD-L', 'PD-L %',
+                'PD-HL', 'PD-HL %', 'PD-nHL', 'PD-nHL %'
+            ]]
         ],
-        'tooltips': {
-            "D UP": "Days where the Close was higher than the Open",
-            "D UP %": "Percentage of D UP days out of Total Days.\nD UP % + D DN % ≈ 100%",
-            "D DN": "Days where the Close was lower than the Open",
-            "D DN %": "Percentage of D-DN days out of Total Days.\nD UP % + D DN % ≈ 100%",
-            "PD-H": "Days where the High was not lower than the Previous Day's High and the Low was higher than the Previous Day's Low.",
-            "PD-H %": "Percentage of PD-H days out of Total Days.\nPD-H % + PD-L % + PD-HL % + PD-nHL ≈ 100%",
-            "PD-L": "Days where the Low was not higher than the Previous Day's Low and the High was lower than the Previous Day's High.",
-            "PD-L %": "Percentage of PD-L days out of Total Days.\nPD-H % + PD-L % + PD-HL % + PD-nHL ≈ 100%",
-            "PD-HL": "Days where the High was not lower than the Previous Day's High, and the Low was not higher than the Previous Day's Low (Outside bar)",
-            "PD-HL %": "Percentage of PD-HL days out of Total Days.\nPD-H % + PD-L % + PD-HL % + PD-nHL ≈ 100%",
-            "PD-nHL": "Days where the High was lower than the Previous Day's High and the Low was higher than the Previous Day's Low (Inside bar)",
-            "PD-nHL %": "Percentage of PD-nHL days out of Total Days.\nPD-H % + PD-L % + PD-HL % + PD-nHL ≈ 100%",
-        }
-    },
     'day_trading_extended_weekday': {
         'columns': [
             {'name': 'Weekday', 'id': 'weekday'},
@@ -509,60 +499,49 @@ def create_analysis_section():
                     ])
 
 
-def create_day_trading_stats_section():
-    """Create Day Trading Stats section using factory"""
+def create_analysis_table_section(section_id, title, table_type):
+    """Generic factory for creating analysis table sections"""
     return html.Div(
         style=ANALYSIS_SECTION_STYLE,
         children=[
-            html.H3("Day Trading Stats", style=SECTION_TITLE_STYLE),
+            html.H3(title, style=SECTION_TITLE_STYLE),
             create_stats_table_factory(
-                table_id='day-trading-stats-table',
-                table_type='day_trading'
+                table_id=f"{section_id}-table",
+                table_type=table_type
             )
         ]
     )
 
+# Create section generators using partial application
+from functools import partial
 
-def create_day_trading_stats_weekday_section():
-    """Create Day Trading Stats (Weekday) section using factory"""
-    return html.Div(
-        style=ANALYSIS_SECTION_STYLE,
-        children=[
-            html.H3("Day Trading Stats Weekdays", style=SECTION_TITLE_STYLE),
-            create_stats_table_factory(
-                table_id='day-trading-stats-weekday-table',
-                table_type='day_trading_weekday'
-            )
-        ]
-    )
+create_day_trading_stats_section = partial(
+    create_analysis_table_section,
+    section_id='day-trading-stats',
+    title='Day Trading Stats',
+    table_type='day_trading'
+)
 
+create_day_trading_stats_weekday_section = partial(
+    create_analysis_table_section,
+    section_id='day-trading-stats-weekday',
+    title='Day Trading Stats Weekdays', 
+    table_type='day_trading_weekday'
+)
 
-def create_day_trading_stats_1_section():
-    """Create Extended Day Trading Stats section using factory"""
-    return html.Div(
-        style=ANALYSIS_SECTION_STYLE,
-        children=[
-            html.H3("Day Trading Stats - continuation", style=SECTION_TITLE_STYLE),
-            create_stats_table_factory(
-                table_id='day-trading-stats-1-table',
-                table_type='day_trading_extended'
-            )
-        ]
-    )
+create_day_trading_stats_1_section = partial(
+    create_analysis_table_section,
+    section_id='day-trading-stats-1',
+    title='Day Trading Stats - continuation',
+    table_type='day_trading_extended'
+)
 
-
-def create_day_trading_stats_1_weekday_section():
-    """Create Extended Day Trading Stats (Weekday) section using factory"""
-    return html.Div(
-        style=ANALYSIS_SECTION_STYLE,
-        children=[
-            html.H3("Day Trading Stats - continuation - Weekday", style=SECTION_TITLE_STYLE),
-            create_stats_table_factory(
-                table_id='day-trading-stats-1-weekday-table',
-                table_type='day_trading_extended_weekday'
-            )
-        ]
-    )
+create_day_trading_stats_1_weekday_section = partial(
+    create_analysis_table_section,
+    section_id='day-trading-stats-1-weekday',
+    title='Day Trading Stats - continuation - Weekday',
+    table_type='day_trading_extended_weekday'
+)
 
 
 def create_day_analysis_dist_legend():
