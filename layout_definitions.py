@@ -17,6 +17,30 @@ ANALYSIS_SECTION_STYLE = {
 SECTION_TITLE_STYLE = {'textAlign': 'center'}
 
 # Table Configuration
+def generate_base_columns(id_column):
+    """Generate common base columns for trading stats tables"""
+    return [
+        {'name': id_column.capitalize(), 'id': id_column},
+        {'name': 'Total Days', 'id': 'Total Days'},
+        *[{'name': col, 'id': col} for col in [
+            'D UP', 'D UP %', 'D DN', 'D DN %', 
+            'PD-H', 'PD-H %', 'PD-L', 'PD-L %',
+            'PD-HL', 'PD-HL %', 'PD-nHL', 'PD-nHL %'
+        ]]
+    ]
+
+def generate_extended_columns(id_column):
+    """Generate extended columns for detailed trading stats tables"""
+    return [
+        {'name': id_column.capitalize(), 'id': id_column},
+        {'name': 'Total Days', 'id': 'Total Days'},
+        *[{'name': col, 'id': col} for col in [
+            'CaPD-H', 'CaPD-H %', 'CbPD-L', 'CbPD-L %',
+            'CaPD-HL', 'CaPD-HL %', 'CbPD-HL', 'CbPD-HL %',
+            'BISI', 'BISI %', 'SIBI', 'SIBI %'
+        ]]
+    ]
+
 TABLE_CONFIGS = {
     'base_analysis': {
         'columns': [],
@@ -37,15 +61,7 @@ TABLE_CONFIGS = {
     },
     'day_trading': {
         'base': 'base_analysis',
-        'columns': [
-            {'name': 'Year', 'id': 'year'},
-            {'name': 'Total Days', 'id': 'Total Days'},
-            *[{'name': col, 'id': col} for col in [
-                'D UP', 'D UP %', 'D DN', 'D DN %', 
-                'PD-H', 'PD-H %', 'PD-L', 'PD-L %',
-                'PD-HL', 'PD-HL %', 'PD-nHL', 'PD-nHL %'
-            ]]
-        ],
+        'columns': generate_base_columns('year'),
         'tooltips': {
             "D UP": "Days where the Close was higher than the Open",
             "D UP %": "Percentage of D UP days out of Total Days.\nD UP % + D DN % ≈ 100%",
@@ -62,22 +78,7 @@ TABLE_CONFIGS = {
         }
     },
     'day_trading_extended': {
-        'columns': [
-            {'name': 'Year', 'id': 'year'},
-            {'name': 'Total Days', 'id': 'Total Days'},
-            {'name': 'CaPD-H', 'id': 'CaPD-H'},
-            {'name': 'CaPD-H %', 'id': 'CaPD-H %'},
-            {'name': 'CbPD-L', 'id': 'CbPD-L'},
-            {'name': 'CbPD-L %', 'id': 'CbPD-L %'},
-            {'name': 'CaPD-HL', 'id': 'CaPD-HL'},
-            {'name': 'CaPD-HL %', 'id': 'CaPD-HL %'},
-            {'name': 'CbPD-HL', 'id': 'CbPD-HL'},
-            {'name': 'CbPD-HL %', 'id': 'CbPD-HL %'},
-            {'name': 'BISI', 'id': 'BISI'},
-            {'name': 'BISI %', 'id': 'BISI %'},
-            {'name': 'SIBI', 'id': 'SIBI'},
-            {'name': 'SIBI %', 'id': 'SIBI %'},
-        ],
+        'columns': generate_extended_columns('year'),
         'tooltips': {
                     "CaPD-H": "PD-H Days where Close was above the Previous Day's High.\n(Closed above PD-H)",
                     "CaPD-H %": "Percentage of CaPD-H days out of Total Days.",
@@ -95,33 +96,10 @@ TABLE_CONFIGS = {
     },
     'day_trading_weekday': {
         'base': 'base_analysis',
-        'columns': [
-            {'name': 'Weekday', 'id': 'weekday'},
-            {'name': 'Total Days', 'id': 'Total Days'},
-            *[{'name': col, 'id': col} for col in [
-                'D UP', 'D UP %', 'D DN', 'D DN %', 
-                'PD-H', 'PD-H %', 'PD-L', 'PD-L %',
-                'PD-HL', 'PD-HL %', 'PD-nHL', 'PD-nHL %'
-            ]]
-        ]
+        'columns': generate_base_columns('weekday'),
     },
     'day_trading_extended_weekday': {
-        'columns': [
-            {'name': 'Weekday', 'id': 'weekday'},
-            {'name': 'Total Days', 'id': 'Total Days'},
-            {'name': 'CaPD-H', 'id': 'CaPD-H'},
-            {'name': 'CaPD-H %', 'id': 'CaPD-H %'},
-            {'name': 'CbPD-L', 'id': 'CbPD-L'},
-            {'name': 'CbPD-L %', 'id': 'CbPD-L %'},
-            {'name': 'CaPD-HL', 'id': 'CaPD-HL'},
-            {'name': 'CaPD-HL %', 'id': 'CaPD-HL %'},
-            {'name': 'CbPD-HL', 'id': 'CbPD-HL'},
-            {'name': 'CbPD-HL %', 'id': 'CbPD-HL %'},
-            {'name': 'BISI', 'id': 'BISI'},
-            {'name': 'BISI %', 'id': 'BISI %'},
-            {'name': 'SIBI', 'id': 'SIBI'},
-            {'name': 'SIBI %', 'id': 'SIBI %'},
-        ],
+        'columns': generate_extended_columns('weekday'),
         'tooltips': {
             "CaPD-H": "PD-H Days where Close was above the Previous Day's High.\n(Closed above PD-H)",
             "CaPD-H %": "Percentage of CaPD-H days out of Total Days.",
