@@ -200,30 +200,15 @@ TABLE_TOOLTIP_STYLE = {
 TABLE_CONTAINER_STYLE = {'overflowX': 'scroll'}
 
 # Factory Functions
-def create_analysis_section_factory(section_id, title):
-    """Factory for creating analysis sections with dynamic content based on section type"""
-    # Determine which comparison charts to include
+def create_analysis_section_factory(section_id, title, comparisons=None):
+    """Factory for creating standardized analysis sections"""
     comparison_charts = []
-    if section_id == 'pdh':
+    if comparisons:
         comparison_charts = [
-            html.Div(dcc.Graph(id=f"{section_id}-high-vs-prev-high-dist", 
-                    config={'displayModeBar': False, 'staticPlot': True}), 
+            html.Div(dcc.Graph(id=f"{section_id}-{comp}-dist", 
+                     config={'displayModeBar': False, 'staticPlot': True}), 
                 style=HALF_WIDTH)
-        ]
-    elif section_id == 'pdl':
-        comparison_charts = [
-            html.Div(dcc.Graph(id=f"{section_id}-low-vs-prev-low-dist", 
-                    config={'displayModeBar': False, 'staticPlot': True}), 
-                style=HALF_WIDTH)
-        ]
-    else:  # For sections that need both comparisons
-        comparison_charts = [
-            html.Div(dcc.Graph(id=f"{section_id}-low-vs-prev-low-dist", 
-                    config={'displayModeBar': False, 'staticPlot': True}), 
-                style=HALF_WIDTH),
-            html.Div(dcc.Graph(id=f"{section_id}-high-vs-prev-high-dist", 
-                    config={'displayModeBar': False, 'staticPlot': True}), 
-                style=HALF_WIDTH)
+            for comp in comparisons
         ]
 
     return html.Div(
@@ -233,17 +218,22 @@ def create_analysis_section_factory(section_id, title):
             html.H3(title, style=SECTION_TITLE_STYLE),
             create_day_analysis_dist_legend(),
             html.Div([
-                html.Div(dcc.Graph(id=f"{section_id}-open-low-dist", config={'displayModeBar': False, 'staticPlot': True}), style=HALF_WIDTH),
-                html.Div(dcc.Graph(id=f"{section_id}-open-high-dist", config={'displayModeBar': False, 'staticPlot': True}), style=HALF_WIDTH),
+                html.Div(dcc.Graph(id=f"{section_id}-open-low-dist", 
+                         config={'displayModeBar': False, 'staticPlot': True}), style=HALF_WIDTH),
+                html.Div(dcc.Graph(id=f"{section_id}-open-high-dist", 
+                         config={'displayModeBar': False, 'staticPlot': True}), style=HALF_WIDTH),
             ], style=FLEX_CONTAINER_STYLE),
             html.Div([
-                html.Div(dcc.Graph(id=f"{section_id}-open-close-dist", config={'displayModeBar': False, 'staticPlot': True}), style=CENTERED_HALF_WIDTH),
+                html.Div(dcc.Graph(id=f"{section_id}-open-close-dist", 
+                         config={'displayModeBar': False, 'staticPlot': True}), style=CENTERED_HALF_WIDTH),
             ]),
             html.Div(comparison_charts, style=FLEX_CONTAINER_STYLE),
             create_day_analysis_scatter_legend(),
             html.Div([
-                html.Div(dcc.Graph(id=f"{section_id}-open-low-vs-close-scatter", config={'displayModeBar': False, 'staticPlot': True}), style=HALF_WIDTH),
-                html.Div(dcc.Graph(id=f"{section_id}-open-low-vs-high-scatter", config={'displayModeBar': False, 'staticPlot': True}), style=HALF_WIDTH),
+                html.Div(dcc.Graph(id=f"{section_id}-open-low-vs-close-scatter", 
+                         config={'displayModeBar': False, 'staticPlot': True}), style=HALF_WIDTH),
+                html.Div(dcc.Graph(id=f"{section_id}-open-low-vs-high-scatter", 
+                         config={'displayModeBar': False, 'staticPlot': True}), style=HALF_WIDTH),
             ], style=FLEX_CONTAINER_STYLE)
         ]
     )
@@ -589,36 +579,36 @@ def create_day_analysis_scatter_legend():
     )
 
 
-def create_dup_analysis_section():
-    """Create D-UP Day Analysis section using factory"""
-    return create_analysis_section_factory(
-        section_id="dup",
-        title="D-UP Day Analysis"
-    )
+# Section creation using factory with partial application
+from functools import partial
 
+create_dup_analysis_section = partial(
+    create_analysis_section_factory,
+    section_id="dup",
+    title="D-UP Day Analysis",
+    comparisons=['low-vs-prev-low', 'high-vs-prev-high']
+)
 
-def create_ddown_analysis_section():
-    """Create D-DN Day Analysis section using factory"""
-    return create_analysis_section_factory(
-        section_id="ddown",
-        title="D-DN Day Analysis"
-    )
+create_ddown_analysis_section = partial(
+    create_analysis_section_factory,
+    section_id="ddown", 
+    title="D-DN Day Analysis",
+    comparisons=['low-vs-prev-low', 'high-vs-prev-high']
+)
 
+create_pdh_analysis_section = partial(
+    create_analysis_section_factory,
+    section_id="pdh",
+    title="PD-H Day Analysis",
+    comparisons=['high-vs-prev-high']
+)
 
-def create_pdh_analysis_section():
-    """Create PD-H Day Analysis section using factory"""
-    return create_analysis_section_factory(
-        section_id="pdh",
-        title="PD-H Day Analysis"
-    )
-
-
-def create_pdl_analysis_section():
-    """Create PD-L Day Analysis section using factory"""
-    return create_analysis_section_factory(
-        section_id="pdl",
-        title="PD-L Day Analysis"
-    )
+create_pdl_analysis_section = partial(
+    create_analysis_section_factory,
+    section_id="pdl",
+    title="PD-L Day Analysis", 
+    comparisons=['low-vs-prev-low']
+)
 
 
 def create_pdhl_analysis_section():
