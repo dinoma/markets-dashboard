@@ -20,8 +20,8 @@ TOOLTIP_REGISTRY = {
     'd_up_pct': "D-UP days percentage (D-UP% + D-DN% ≈ 100%)",
     'd_dn': "Days where Close < Open",
     'd_dn_pct': "D-DN days percentage (D-UP% + D-DN% ≈ 100%)",
-    'd_up_%': "D-UP days percentage (D-UP% + D-DN% ≈ 100%)",  # Alias for percentage columns
-    'd_dn_%': "D-DN days percentage (D-UP% + D-DN% ≈ 100%)",   # Alias for percentage columns
+    'd_up_pct': "D-UP days percentage (D-UP% + D-DN% ≈ 100%)",  # Alias for percentage columns
+    'd_dn_pct': "D-DN days percentage (D-UP% + D-DN% ≈ 100%)",   # Alias for percentage columns
     'pd_h': "High ≥ Previous High & Low > Previous Low",
     'pd_h_pct': "Percentage of PD-H days (PD-H% + PD-L% + PD-HL% + PD-nHL ≈ 100%)",
     'pd_l': "Low ≤ Previous Low & High < Previous High",
@@ -81,7 +81,7 @@ TABLE_CONFIGS = {
     'base_analysis': {
         'columns': [],
         'tooltips': {
-            col: TOOLTIP_REGISTRY[col.lower().replace(" ", "_").replace("-", "_").replace("%", "_pct")]
+            col: TOOLTIP_REGISTRY[col.lower().replace("%", "pct").replace(" ", "_").replace("-", "_")]
             for col in [
                 "D UP", "D UP %", "D DN", "D DN %",
                 "PD-H", "PD-H %", "PD-L", "PD-L %",
