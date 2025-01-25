@@ -93,7 +93,7 @@ TABLE_CONFIGS = {
         'base': 'base_analysis',
         'columns': generate_base_columns('year'),
         'tooltips': {
-            col: TOOLTIP_REGISTRY[col.lower().replace(" ", "_").replace("-", "_")]
+            col: TOOLTIP_REGISTRY[col.lower().replace("%", "pct").replace(" ", "_").replace("-", "_")]
             for col in [
                 "D UP", "D UP %", "D DN", "D DN %",
                 "PD-H", "PD-H %", "PD-L", "PD-L %",
@@ -104,7 +104,7 @@ TABLE_CONFIGS = {
     'day_trading_extended': {
         'columns': generate_extended_columns('year'),
         'tooltips': {
-            col: TOOLTIP_REGISTRY[col.lower().replace(" ", "_").replace("-", "_")]
+            col: TOOLTIP_REGISTRY[col.lower().replace("%", "pct").replace(" ", "_").replace("-", "_")]
             for col in [
                 "CaPD-H", "CaPD-H %", "CbPD-L", "CbPD-L %",
                 "CaPD-HL", "CaPD-HL %", "CbPD-HL", "CbPD-HL %",
@@ -119,7 +119,7 @@ TABLE_CONFIGS = {
     'day_trading_extended_weekday': {
         'columns': generate_extended_columns('weekday'),
         'tooltips': {
-            col: TOOLTIP_REGISTRY[col.lower().replace(" ", "_").replace("-", "_")]
+            col: TOOLTIP_REGISTRY[col.lower().replace("%", "pct").replace(" ", "_").replace("-", "_")]
             for col in [
                 "CaPD-H", "CaPD-H %", "CbPD-L", "CbPD-L %",
                 "CaPD-HL", "CaPD-HL %", "CbPD-HL", "CbPD-HL %",
