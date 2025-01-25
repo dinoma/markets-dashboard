@@ -760,44 +760,38 @@ def create_pdh_pdl_pdhl_analysis_section():
 
 
 def create_correlation_section():
-    """
-    Creates a section for displaying correlation tables for 180 days and 15 years with market names vertically.
-    """
+    """Create simplified correlation section with only 180-day table"""
     return html.Div(children=[
         html.H3("Market Correlation",
-                style={'textAlign': 'center', 'color': 'white', 'fontFamily': "'Press Start 2P', monospace"}),
-
-        # 180 Days Correlation Table
+                style={'textAlign': 'center', 'color': 'white', 
+                       'fontFamily': "'Press Start 2P', monospace"}),
+        
+        # Single 180-day table
         html.Div([
             html.H4("180-Day Market Correlation",
-                    style={'textAlign': 'center', 'color': 'white', 'fontFamily': "'Press Start 2P', monospace"}),
+                    style={'textAlign': 'center', 'color': 'white', 
+                           'fontFamily': "'Press Start 2P', monospace"}),
             dash_table.DataTable(
                 id='correlation-180-days-table',
                 editable=False,
                 cell_selectable=False,
-                columns=[
-                    {'name': 'MKT', 'id': 'MKT'},  # First column
-                    {'name': 'Example 1', 'id': 'Example 1'},
-                    {'name': 'Example 2', 'id': 'Example 2'},
-                ],
-                style_table={'width': '100%', 'margin': '0 auto', 'backgroundColor': '#1e1e1e', 'overflowX': 'auto'},
+                style_table={'width': '100%', 'margin': '0 auto', 
+                            'backgroundColor': '#1e1e1e', 'overflowX': 'auto'},
                 style_data={
                     'backgroundColor': '#1e1e1e',
-                    'color': '#4CAF50',  # Green text
+                    'color': '#4CAF50',
                     'fontFamily': "'Press Start 2P', monospace",
                     'textAlign': 'center',
                     'fontSize': '8px',
                 },
-                style_data_conditional=[
-                    {
-                        'if': {'column_id': 'MKT'},  # First column styling
-                        'backgroundColor': '#4CAF50',  # Same background as header
-                        'color': 'white',  # Same text color as header
-                        'fontWeight': 'bold',  # Optional: make it bold like header
-                        'textAlign': 'left',
-                        'whiteSpace': 'nowrap'
-                    },
-                ],
+                style_data_conditional=[{
+                    'if': {'column_id': 'MKT'},
+                    'backgroundColor': '#4CAF50',
+                    'color': 'white',
+                    'fontWeight': 'bold',
+                    'textAlign': 'left',
+                    'whiteSpace': 'nowrap'
+                }],
                 style_header={
                     'backgroundColor': '#4CAF50',
                     'color': 'white',
@@ -806,52 +800,8 @@ def create_correlation_section():
                     'textAlign': 'center',
                     'fontSize': '8px',
                 },
-            ),
-        ], style={'marginTop': '20px'}),
-
-        # 15 Years Correlation Table
-        html.Div([
-            html.H4("15-Year Market Correlation",
-                    style={'textAlign': 'center', 'color': 'white', 'fontFamily': "'Press Start 2P', monospace"}),
-            dash_table.DataTable(
-                id='correlation-15-years-table',
-                editable=False,
-                cell_selectable=False,
-                columns=[
-                    {'name': 'MKT', 'id': 'MKT'},  # First column
-                    {'name': 'Example 1', 'id': 'Example 1'},
-                    {'name': 'Example 2', 'id': 'Example 2'},
-                ],
-                style_table={'width': '100%', 'margin': '0 auto', 'backgroundColor': '#1e1e1e', 'overflowX': 'auto'},
-                style_data={
-                    'backgroundColor': '#1e1e1e',
-                    'color': '#4CAF50',  # Green text
-                    'fontFamily': "'Press Start 2P', monospace",
-                    'textAlign': 'center',
-                    'fontSize': '8px',
-                },
-                style_data_conditional=[
-                    {
-                        'if': {'column_id': 'MKT'},  # First column styling
-                        'backgroundColor': '#4CAF50',  # Same background as header
-                        'color': 'white',  # Same text color as header
-                        'fontWeight': 'bold',  # Optional: make it bold like header
-                        'textAlign': 'left',
-                        'whiteSpace': 'nowrap'
-                    },
-                ],
-                style_header={
-                    'backgroundColor': '#4CAF50',
-                    'color': 'white',
-                    'fontWeight': 'bold',
-                    'fontFamily': "'Press Start 2P', monospace",
-                    'textAlign': 'center',
-                    'fontSize': '8px',
-                },
-
-            ),
-        ], style={'marginTop': '20px'}),
-
+            )
+        ], style={'marginTop': '20px'})
     ], style={'padding': '20px', 'backgroundColor': '#1e1e1e'})
 
 
