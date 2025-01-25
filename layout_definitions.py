@@ -894,18 +894,6 @@ def create_layout(app):
 
 
 
-                    # Create Correlation Tables section
-                    html.Div(
-                        children=[
-                            create_correlation_section(),
-                            dcc.Loading(
-                                id='correlation-loading',
-                                children=[html.Div(id='correlation-output')],
-                                type='circle'
-                            )
-                        ],
-                        style={'marginTop': '20px'}
-                    ),
 
                     html.Div(
                         children=[
