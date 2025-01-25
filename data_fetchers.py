@@ -73,15 +73,25 @@ class BaseDataFetcher:
 
         Args:
             query (str): The SQL query to execute.
-            params (tuple, optional): The parameters for the SQL query.
+            params (dict, optional): The parameters for the SQL query as a dictionary.
 
         Returns:
             pd.DataFrame: DataFrame containing the fetched data.
-        """
 
-        # Fetch data using SQLAlchemy Engine
+        Raises:
+            ValueError: If parameters are not in dictionary format
+        """
+        from sqlalchemy import bindparam
+
+        if params and not isinstance(params, dict):
+            raise ValueError("Query parameters must be in dictionary format")
+
+        # Fetch data using SQLAlchemy Engine with parameter binding
         with engine.connect() as connection:
-            df = pd.read_sql(text(query), connection, params=params)
+            stmt = text(query)
+            if params:
+                stmt = stmt.bindparams(*[bindparam(key, value) for key, value in params.items()])
+            df = pd.read_sql(stmt, connection)
         return df
 
 
