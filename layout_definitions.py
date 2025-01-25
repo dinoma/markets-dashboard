@@ -103,7 +103,8 @@ TABLE_CONFIGS = {
                 'PD-H', 'PD-H %', 'PD-L', 'PD-L %',
                 'PD-HL', 'PD-HL %', 'PD-nHL', 'PD-nHL %'
             ]]
-        ],
+        ]
+    },
     'day_trading_extended_weekday': {
         'columns': [
             {'name': 'Weekday', 'id': 'weekday'},
