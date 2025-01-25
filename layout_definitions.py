@@ -263,6 +263,63 @@ DEFAULT_MARKET = 'SP 500'
 DEFAULT_YEARS = [15, 35]
 DEFAULT_DIRECTION = 'Long'
 
+# Component Factories
+def create_navigation_buttons(button_ids_prefix=""):
+    """Create standardized navigation buttons"""
+    return html.Div([
+        html.Button('Prev. Market', id=f'prev-market-button-{button_ids_prefix}', n_clicks=0, className='above-chart-button'),
+        html.Button('Next Market', id=f'next-market-button-{button_ids_prefix}', n_clicks=0, className='above-chart-button'),
+        html.Button('Prev. Year', id=f'prev-year-button-{button_ids_prefix}', n_clicks=0, className='above-chart-button'),
+        html.Button('Next Year', id=f'next-year-button-{button_ids_prefix}', n_clicks=0, className='above-chart-button')
+    ], style={'display': 'flex', 'justifyContent': 'space-between', 'marginTop': '10px', 'gap': '10px'})
+
+def create_social_links():
+    """Create standardized social media links"""
+    return html.Div([
+        html.P("See tutorials and more!", style={
+            'fontWeight': 'bold', 'textAlign': 'center', 'color': 'white', 'marginTop': '20px'
+        }),
+        html.Div([
+            html.A(
+                html.Img(
+                    src="https://upload.wikimedia.org/wikipedia/commons/9/95/Twitter_new_X_logo.png",
+                    style={'height': '30px', 'width': '30px', 'marginRight': '10px'}
+                ),
+                href="https://x.com/ClockTrades",
+                target="_blank"
+            ),
+            html.A(
+                html.Img(
+                    src="https://upload.wikimedia.org/wikipedia/commons/d/d0/YouTube_full-color_icon_%282017%29.webp",
+                    style={'height': '30px', 'width': '45px'}
+                ),
+                href="https://youtube.com/@ClockTrades",
+                target="_blank"
+            ),
+        ], style={'display': 'flex', 'justifyContent': 'center'})
+    ])
+
+def create_market_dropdown():
+    """Create standardized market dropdown"""
+    return dcc.Dropdown(
+        id='market-dropdown',
+        options=[{'label': name, 'value': ticker} for name, ticker in market_tickers.items()],
+        value=DEFAULT_MARKET,
+        placeholder=DEFAULT_MARKET,
+        clearable=False,
+        className='dropdown-menu-1',
+        style={'width': '100%', 'marginBottom': '10px', 'backgroundColor': '#2b2b2b', 'color': 'white', 'border': 'none'},
+        searchable=False
+    )
+
+def create_loading_container(component, loading_id):
+    """Create standardized loading container"""
+    return dcc.Loading(
+        id=loading_id,
+        children=[component, html.Div(id=f'{loading_id}-output')],
+        type='circle'
+    )
+
 if user_tier == 'premium':
     CHECKLIST_OPTIONS = {
         'years': [
@@ -672,24 +729,167 @@ def create_correlation_section():
     ], style={'padding': '20px', 'backgroundColor': '#1e1e1e'})
 
 
-def create_layout(app):
-    """
-    Create and set the layout for the Dash application.
+def create_main_chart_section(is_premium=False):
+    """Create main chart section with conditional premium features"""
+    children = [
+        create_navigation_buttons("main"),
+        dcc.Graph(
+            id="combined-chart",
+            config={"scrollZoom": True, "doubleClick": "autosize", "displayModeBar": False},
+            style={"backgroundColor": "#1e1e1e"}
+        )
+    ]
+    
+    if is_premium:
+        children.insert(1, dcc.Loading(
+            id="loading-combined-chart",
+            type="circle",
+            children=html.Div()
+        ))
+    
+    return html.Div(children)
 
-    Args:
-        app (dash.Dash): The Dash application instance.
-    """
+def create_analysis_sections(is_premium=False):
+    """Create analysis sections with conditional premium content"""
+    sections = [
+        create_loading_container(create_analysis_section(), 'loading-opportunity'),
+        create_loading_container(create_day_trading_stats_section(), 'day-trading-stats'),
+        create_loading_container(create_day_trading_stats_weekday_section(), 'day-trading-stats-weekday'),
+        create_correlation_section()
+    ]
+    
+    if is_premium:
+        sections.extend([
+            create_loading_container(create_day_trading_stats_1_section(), 'day-trading-stats-1'),
+            create_loading_container(create_day_trading_stats_1_weekday_section(), 'day-trading-stats-1-weekday'),
+            create_loading_container(create_dup_analysis_section(), 'loading-dup-analysis-output'),
+            create_loading_container(create_ddown_analysis_section(), 'loading-ddown-analysis-output'),
+            create_loading_container(create_pdh_analysis_section(), 'loading-pdh-analysis-output'),
+            create_loading_container(create_pdl_analysis_section(), 'loading-pdl-analysis-output'),
+            create_loading_container(create_pdhl_analysis_section(), 'loading-pdhl-analysis-output'),
+            create_loading_container(create_pdh_pdl_pdhl_analysis_section(), 'loading-pdh_pdl_pdhl-analysis-output')
+        ])
+    else:
+        sections.append(html.Div([
+            html.P("Enjoy the Power of FREE version Now – Full Features Coming Soon!", style={
+                'fontWeight': 'bold', 'textAlign': 'center', 'color': 'white', 'marginTop': '20px'
+            }),
+            html.P([
+                "Follow us on ",
+                html.A(
+                    "X for Updates!",
+                    href="https://x.com/ClockTrades",
+                    target="_blank",
+                    style={'color': 'CornflowerBlue', 'textDecoration': 'none', 'fontWeight': 'bold'}
+                )
+            ], style={'fontWeight': 'bold', 'textAlign': 'center', 'color': 'white', 'marginTop': '20px'})
+        ]))
+    
+    return html.Div(sections, style={'marginTop': '20px'})
 
-    if user_tier == 'premium':
-        app.layout = html.Div(style={'display': 'flex'}, children=[
-            html.Div(
+def create_sidebar_content(is_premium=False):
+    """Create right panel sidebar content"""
+    return html.Div([
+        create_market_dropdown(),
+        html.Div([
+            html.Button('Prev. Market', id='prev-market-button-right-panel', n_clicks=0),
+            html.Button('Next Market', id='next-market-button-right-panel', n_clicks=0),
+        ], style={'display': 'flex', 'justifyContent': 'space-between', 'marginTop': '10px'}),
+        html.Div([
+            html.Button('Prev. Year', id='prev-year-button-right-panel', n_clicks=0),
+            html.Button('Next Year', id='next-year-button-right-panel', n_clicks=0)
+        ], style={'display': 'flex', 'justifyContent': 'space-between', 'marginTop': '10px'}),
+        html.Div([
+            html.Button('OHLC & Cycles', id='ohlc-cycles-toggle', n_clicks=0,
+                        style={'width': '100%', 'textAlign': 'left'}),
+            dbc.Collapse(
                 children=[
-                    html.Div([
-                        html.Button('Prev. Market', id='prev-market-button-main', n_clicks=0, className='above-chart-button'),
-                        html.Button('Next Market', id='next-market-button-main', n_clicks=0, className='above-chart-button'),
-                        html.Button('Prev. Year', id='prev-year-button-main', n_clicks=0, className='above-chart-button'),
-                        html.Button('Next Year', id='next-year-button-main', n_clicks=0, className='above-chart-button')
-                    ], style={'display': 'flex', 'justifyContent': 'space-between', 'marginTop': '10px', 'gap': '10px'}),
+                    dcc.Checklist(
+                        id='ohlc-checklist',
+                        options=CHECKLIST_OPTIONS['ohlc'],
+                        value=['OHLC'],
+                        style={'color': '#FFF'},
+                        inputStyle=INPUT_STYLE
+                    ),
+                    dcc.Checklist(
+                        id='years-checklist',
+                        options=CHECKLIST_OPTIONS['years'],
+                        value=DEFAULT_YEARS,
+                        style={'color': '#FFF'},
+                        inputStyle=INPUT_STYLE
+                    ),
+                ],
+                id='ohlc-cycles-collapse',
+                is_open=is_premium  # Start open for premium
+            )
+        ]),
+        create_cot_section('Legacy', 'Combined', 'legacy-combined-toggle'),
+        create_cot_section('Legacy', 'Futures-Only', 'legacy-futures-only-toggle'),
+        create_cot_section('Disaggregated', 'Combined', 'disaggregated-combined-toggle'),
+        create_cot_section('Disaggregated', 'Futures-Only', 'disaggregated-futures-only-toggle'),
+        create_cot_section('TFF', 'Combined', 'tff-combined-toggle'),
+        create_cot_section('TFF', 'Futures-Only', 'tff-futures-only-toggle'),
+        create_social_links(),
+        dcc.Store(id='current-year', data=2025),
+        dcc.Store(id='stored-market', data=DEFAULT_MARKET),
+        dcc.Store(id='active-subplots', data=[])
+    ], className='content')
+
+def create_base_layout(is_premium=False):
+    """Create unified layout structure for both premium and free versions"""
+    return html.Div(style={'display': 'flex'}, children=[
+        html.Div(
+            children=[
+                create_main_chart_section(is_premium),
+                create_analysis_sections(is_premium),
+                html.Div(
+                    children=[
+                        html.P(
+                            "Disclaimer: Trading involves substantial risk.",
+                            style={"color": "white", "display": "inline", "fontSize": "10px"},
+                        ),
+                        html.A(
+                            "Read Full Disclaimer",
+                            href="/disclaimer",
+                            target="_blank",
+                            style={
+                                "color": "#4CAF50",
+                                "textDecoration": "underline",
+                                "fontSize": "10px",
+                                "marginLeft": "5px",
+                            },
+                        ),
+                    ],
+                    style={"backgroundColor": "#1e1e1e", "padding": "10px", "textAlign": "center"},
+                )
+            ],
+            style={'flex': 1, 'padding': '10px', 'overflow': 'hidden'}
+        ),
+        html.Div(
+            id='right-panel',
+            children=[
+                html.Button(
+                    id='toggle-button',
+                    n_clicks=0,
+                    children=[html.Span(className='navbar-dark navbar-toggler-icon')],
+                    style={
+                        'border': 'none',
+                        'color': 'white',
+                        'fontSize': '10px',
+                        'padding': '10px',
+                        'zIndex': '1000'
+                    }
+                ),
+                create_sidebar_content(is_premium)
+            ]
+        )
+    ])
+
+def create_layout(app):
+    """Create and set the layout for the Dash application"""
+    is_premium = user_tier == 'premium'
+    app.layout = create_base_layout(is_premium)
+    return app
 
 
                     dcc.Loading(
