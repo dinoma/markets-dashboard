@@ -142,13 +142,15 @@ TABLE_CONFIGS = {
 def create_stats_table_factory(table_id, table_type):
     """Factory for creating standardized stats tables"""
     config = TABLE_CONFIGS[table_type]
+    base_config = TABLE_CONFIGS.get(config.get('base', ''), {})
+    
     return dash.dash_table.DataTable(
         id=table_id,
         editable=False,
         cell_selectable=False,
         columns=config['columns'],
         data=[],
-        tooltip_header=config['tooltips'],
+        tooltip_header=config.get('tooltips', base_config.get('tooltips', {})),
         style_header=TABLE_HEADER_STYLE,
         style_cell=TABLE_CELL_STYLE,
         css=[TABLE_TOOLTIP_STYLE],
