@@ -199,7 +199,7 @@ def create_cot_section(cot_type, section_name, toggle_id):
                     'net_positions', 'net_positions_change', 'index_26w'
                 ]
             ],
-            id=f'{cot_type.lower()}-{section_name}-collapse',
+            id=f'{cot_type.lower()}-{section_name.lower().replace(" ", "-")}-collapse',
             is_open=False
         )
     ])
