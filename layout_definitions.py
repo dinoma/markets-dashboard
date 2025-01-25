@@ -1022,7 +1022,6 @@ def create_layout(app):
                                             style={'color': '#FFF'},
                                             inputStyle=INPUT_STYLE
                                         ),
-
                                         dcc.Checklist(
                                             id='years-checklist',
                                             options=CHECKLIST_OPTIONS['years'],
@@ -1030,10 +1029,9 @@ def create_layout(app):
                                             style={'color': '#FFF'},
                                             inputStyle=INPUT_STYLE
                                         ),
-
                                     ],
-                                    id='ohlc-cycles-collapse',  # Correct ID for collapsible content
-                                    is_open=True  # Initial state is collapsed
+                                    id='ohlc-cycles-collapse',
+                                    is_open=False  # Start collapsed by default
                                 )
                             ]),
 
