@@ -87,16 +87,28 @@ class BaseDataFetcher:
             raise ValueError("Query parameters must be in dictionary format")
 
         # Validate table/column names in query
-        allowed_tables = {
-            '_ohlc', '_ohlc_seasonality_5_years', '_ohlc_seasonality_10_years',
-            '_cot_disaggregated_combined', '_cot_legacy_combined', '_cot_tff_combined',
-            '_cot_disaggregated_combined_calc', '_cot_legacy_combined_calc', '_cot_tff_combined_calc'
-        }
-        
-        # Check for valid table patterns
-        table_pattern = re.compile(r'([a-z0-9_]+(_ohlc|_cot_(disaggregated|legacy|tff)_(combined|calc|futures_only))|correlation_\d+_(days|years))')
-        if not table_pattern.search(query.lower()):
-            raise ValueError("Invalid table name pattern in query")
+        # Validate table name pattern using helper method
+        self.validate_table_name_from_query(query.lower())
+
+    @staticmethod
+    def validate_table_name(table_name):
+        """Validate table name against safe pattern"""
+        table_pattern = re.compile(
+            r'^([a-z0-9_]+_ohlc(_seasonality_\d+_years)?|'
+            r'[a-z0-9_]+_cot_(disaggregated|legacy|tff)_(combined|calc|futures_only)|'
+            r'correlation_\d+_(days|years))$'
+        )
+        if not table_pattern.match(table_name):
+            raise ValueError(f"Invalid table name: {table_name}")
+        return True
+
+    @staticmethod
+    def validate_table_name_from_query(query):
+        """Extract and validate table names from SQL query"""
+        table_pattern = re.compile(r'\b(from|join)\s+([a-z0-9_]+)', re.IGNORECASE)
+        matches = table_pattern.findall(query)
+        for _, table in matches:
+            BaseDataFetcher.validate_table_name(table)
 
         # Fetch data using SQLAlchemy Engine with parameter binding
         with engine.connect() as connection:
