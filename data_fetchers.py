@@ -18,8 +18,6 @@ def fetch_ohlc_data_cached(market, start_date, end_date):
     """
     Fetches and caches OHLC data for a specific market and year.
     """
-    # start_date = f"{year}-01-01"
-    # end_date = f"{year}-12-31"
     return OHLCDataFetcher.fetch_ohlc_data_by_range(market, start_date, end_date)
 
 
@@ -135,11 +133,11 @@ class SeasonalDataFetcher(BaseDataFetcher):
         base_name = market.lower().replace(' ', '_')
         table_name = f"{base_name}_ohlc_seasonality_{years}_years"
         
-        # Validate table name pattern
-        if not re.match(r'^[a-z0-9_]+_ohlc_seasonality_\d+_years$', table_name):
-            raise ValueError(f"Invalid table name format: {table_name}")
-            
-        query = f"SELECT * FROM {table_name} ORDER BY day_of_year ASC"
+        # Validate table name
+        BaseDataFetcher.validate_table_name(table_name)
+        
+        # Use safe query construction
+        query = "SELECT * FROM {} ORDER BY day_of_year ASC".format(table_name)
         df = SeasonalDataFetcher.fetch_data(query)
 
         if not df.empty:
@@ -171,8 +169,12 @@ class OHLCDataFetcher(BaseDataFetcher):
         table_name = f"{market.lower().replace(' ', '_')}_ohlc"
         print(f"Fetching OHLC from table: {table_name} for year: {year}")
 
-        query = f"SELECT * FROM {table_name} WHERE Date BETWEEN %s AND %s"
-        params = (f'{year}-01-01 00:00:00', f'{year}-12-31 23:59:59')
+        BaseDataFetcher.validate_table_name(table_name)
+        query = "SELECT * FROM {} WHERE Date BETWEEN :start_date AND :end_date".format(table_name)
+        params = {
+            'start_date': f'{year}-01-01 00:00:00',
+            'end_date': f'{year}-12-31 23:59:59'
+        }
         print(f"Running query: {query} with params: {params}")
 
         df = OHLCDataFetcher.fetch_data(query, params)
