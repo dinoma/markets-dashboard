@@ -2,6 +2,50 @@
 
 import pandas as pd
 from scripts.config import db_path_str
+from enum import Enum
+
+class TableType(Enum):
+    OHLC = "ohlc"
+    OHLC_SEASONALITY = "ohlc_seasonality"
+    COT = "cot"
+    CORRELATION = "correlation"
+
+class TableNameFactory:
+    """Centralized factory for creating and validating table names"""
+    
+    @staticmethod
+    def get_ohlc_table(market: str) -> str:
+        """Generate OHLC table name for a market"""
+        base_name = market.lower().replace(' ', '_')
+        return f"{base_name}_ohlc"
+    
+    @staticmethod
+    def get_seasonality_table(market: str, years: int) -> str:
+        """Generate seasonality table name"""
+        base_name = market.lower().replace(' ', '_')
+        return f"{base_name}_ohlc_seasonality_{years}_years"
+    
+    @staticmethod
+    def get_cot_table(market: str, report_type: str, table_suffix: str) -> str:
+        """Generate COT table name"""
+        base_name = market.lower().replace(' ', '_')
+        return f"{base_name}_cot_{report_type}_{table_suffix}"
+    
+    @staticmethod
+    def get_correlation_table(timeframe: str, unit: str) -> str:
+        """Generate correlation table name"""
+        return f"correlation_{timeframe}_{unit}"
+    
+    @classmethod
+    def validate_table_name(cls, table_name: str) -> bool:
+        """Validate table name against known patterns"""
+        patterns = [
+            r'^[a-z0-9_]+_ohlc$',
+            r'^[a-z0-9_]+_ohlc_seasonality_\d+_years$',
+            r'^[a-z0-9_]+_cot_(disaggregated|legacy|tff)_(combined|futures_only)(_calc)?$',
+            r'^correlation_\d+_(days|years)$'
+        ]
+        return any(re.match(pattern, table_name) for pattern in patterns)
 from datetime import timedelta
 from dateutil import parser
 from functools import lru_cache
@@ -99,9 +143,10 @@ class BaseDataFetcher:
     def validate_table_name(table_name):
         """Validate table name against safe pattern"""
         table_pattern = re.compile(
-            r'^[a-z0-9_]+_ohlc(_seasonality_\d+_years)?$'  # Matches OHLC tables (with or without seasonality)
-            r'|^[a-z0-9_]+_cot_(disaggregated|legacy|tff)_(combined|futures_only)(_calc)?$'  # Matches COT tables
-            r'|^correlation_\d+_(days|years)$'  # Matches correlation tables
+            r'^[a-z0-9_]+_ohlc$|'  # Base OHLC tables
+            r'^[a-z0-9_]+_ohlc_seasonality_\d+_years$|'  # Seasonality tables
+            r'^[a-z0-9_]+_cot_(disaggregated|legacy|tff)_(combined|futures_only)(_calc)?$|'  # COT tables
+            r'^correlation_\d+_(days|years)$'  # Correlation tables
         )
 
         if not table_pattern.match(table_name):
@@ -135,11 +180,8 @@ class SeasonalDataFetcher(BaseDataFetcher):
         Returns:
             pd.DataFrame: DataFrame containing the seasonal data with an additional 'date' column.
         """
-        # Validate and construct table name
-        base_name = market.lower().replace(' ', '_')
-        table_name = f"{base_name}_ohlc_seasonality_{years}_years"
-        
-        # Validate table name
+        # Construct and validate table name
+        table_name = TableNameFactory.get_seasonality_table(market, years)
         BaseDataFetcher.validate_table_name(table_name)
         
         # Use safe query construction
@@ -172,7 +214,7 @@ class OHLCDataFetcher(BaseDataFetcher):
 
     @staticmethod
     def fetch_ohlc_data(market, year):
-        table_name = f"{market.lower().replace(' ', '_')}_ohlc"
+        table_name = TableNameFactory.get_ohlc_table(market)
         print(f"Fetching OHLC from table: {table_name} for year: {year}")
 
         BaseDataFetcher.validate_table_name(table_name)
@@ -399,7 +441,7 @@ class ReportDataFetcher(BaseDataFetcher):
         """
         Generic fetch method that uses configuration to determine query parameters.
         """
-        table_name = f"{market.lower().replace(' ', '_')}{table_suffix}" #  {'_calc' if 'calc' in self.config.get('table_suffix', '') else ''}
+        table_name = TableNameFactory.get_cot_table(market, report_type, table_suffix)
         
         query = f"""
         SELECT {self.config['columns']}
