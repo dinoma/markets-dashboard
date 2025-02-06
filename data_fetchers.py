@@ -217,7 +217,7 @@ class SeasonalDataFetcher(BaseDataFetcher):
 
             # The following steps are now handled by the common_processing pipeline
             # df['date'] = pd.to_datetime(df['date'], format="%Y-%m-%d")
-            # df.sort_values(by='date', inplace=True
+            # df.sort_values(by='date', inplace=True)
 
         return df
 
