@@ -92,9 +92,15 @@ def register_callbacks(app):
                     'oi-percentages': 'OI Percentages',
                     'positions-change': 'Positions Change',
                     'net-positions': 'Net Positions',
-                    'net-positions-change': 'Net Positions Change'
+                    'net-positions-change': 'Net Positions Change',
+                    '26w-index': '26W Index'  # Explicit mapping for 26w index
                 }
                 display_metric = metric_map.get(metric_part, metric_part.replace('-', ' ').title())
+                
+                # Handle 26w index columns for Legacy report types
+                if display_metric == '26W Index' and cot_type == 'legacy':
+                    columns = ['noncomm_26w_index', 'comm_26w_index']  # Matches actual database columns
+                    table_suffix = 'combined_calc'  # Fixed suffix for index tables
 
             # Add activated subplots
             if display_metric in value:
