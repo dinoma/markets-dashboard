@@ -266,8 +266,9 @@ def register_callbacks(app):
                             col=1,
                             line_color=COLORS[color]
                         )
-                    filtered_y_range = [filtered_data.iloc[:, 1:].min().min(), filtered_data.iloc[:, 1:].max().max()]
-                    fig.update_yaxes(range=filtered_y_range, row=row_index, col=1, fixedrange=True)
+                    # No manual y_range computation; RangeManager handles it
+                    # filtered_y_range = [filtered_data.iloc[:, 1:].min().min(), filtered_data.iloc[:, 1:].max().max()]
+                    # y_range is already set earlier
 
                 if subplot == 'Positions Change':
 
@@ -707,7 +708,6 @@ def register_callbacks(app):
                                                 ohlc_data_all_years,
                                                 optimal_results_15y, optimal_results_30y
                                                 )
-
             )
 
             # Calculate risk metrics using cumulative returns
