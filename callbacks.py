@@ -120,6 +120,10 @@ def register_callbacks(app):
         prevent_initial_call=False
     )
     def update_graph(active_subplots, selected_years, ohlc_visibility, stored_market, current_year, relayout_data):
+        # Phase 1: Debug instrumentation
+        print(f"\n=== GRAPH UPDATE START ===\nActive subplots: {active_subplots}")
+        assert isinstance(active_subplots, list), "Invalid active_subplots type"
+        
         num_rows = 1 + len(active_subplots)
         specs = [[{'secondary_y': True}]] + [[{'secondary_y': False}] for _ in range(len(active_subplots))]
 
@@ -135,9 +139,18 @@ def register_callbacks(app):
 
         start_date_str = f"{current_year}-01-01"
         end_date_str = f"{current_year}-12-31"
+        # Phase 1: Data pipeline validation
+        print(f"Fetching OHLC data for {stored_market} ({current_year})")
         ohlc_df = fetch_ohlc_data_cached(stored_market, start_date_str, end_date_str)
+        
+        if not ohlc_df.empty:
+            print(f"Retrieved {len(ohlc_df)} OHLC records | Date range: {ohlc_df['date'].min()} to {ohlc_df['date'].max()}")
+        else:
+            print("WARNING: Empty OHLC data returned!")
 
         if ohlc_df.empty:
+            # Phase 1: Empty state validation
+            print("Rendering empty data state")
             fig.update_layout(
                 plot_bgcolor="#1e1e1e",
                 paper_bgcolor="#1e1e1e",
@@ -250,8 +263,11 @@ def register_callbacks(app):
                         disable_hover=False
                     )
 
+        # Phase 1: Subplot results validation
         row_index = 2
-        for subplot, table_suffix, report_type in active_subplots:
+        print(f"Processing {len(active_subplots)} subplots:")
+        for i, (subplot, table_suffix, report_type) in enumerate(active_subplots, 1):
+            print(f"  [{i}/{len(active_subplots)}] {subplot} | {table_suffix} | {report_type}")
             df = fetch_active_subplot_data(stored_market, current_year, subplot, table_suffix, report_type)
             df = df.apply(pd.to_numeric, errors='coerce')
 
@@ -448,8 +464,13 @@ def register_callbacks(app):
             dragmode="pan"
         )
 
+        # Phase 1: Final validation
+        print(f"Finalizing layout with {num_rows} rows")
+        assert num_rows == 1 + len(active_subplots), "Subplot row count mismatch"
+        
         # Dynamically update axes settings for each subplot
-        for i in range(1, num_rows + 1):  # Assuming num_rows is the total number of rows in your subplot
+        for i in range(1, num_rows + 1):
+            print(f"Updating axes for row {i}/{num_rows}")
             fig.update_xaxes(
                 showgrid=False,  # Hide x-axis grid lines
                 zeroline=False,  # Hide x-axis zero line
