@@ -1,7 +1,7 @@
 # callbacks.py
 
 from dash import Input, Output, State, ctx, callback_context, MATCH, ALL
-from state_managers import RangeManager, ViewportHandler, InteractionTracker
+from state_managers import RangeManager
 import plotly.subplots as sp
 from layout_definitions import format_market_name
 from data_fetchers import (
