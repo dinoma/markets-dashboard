@@ -195,7 +195,7 @@ def create_cot_section(cot_type, section_name, toggle_id):
     return html.Div([
         html.Button(
             f'{cot_type} - {section_name.replace("-", " ").title()}',
-            id=toggle_id,
+            id={'type': 'cot-toggle', 'section': f'{cot_type}-{section_name}'},
             n_clicks=0,
             style={'width': '100%', 'textAlign': 'left'}
         ),
@@ -211,7 +211,7 @@ def create_cot_section(cot_type, section_name, toggle_id):
                     'net_positions', 'net_positions_change', 'index_26w'
                 ]
             ],
-            id=f'{cot_type.lower()}-{section_name.lower().replace(" ", "-")}-collapse',
+            id={'type': 'cot-collapse', 'section': f'{cot_type}-{section_name}'},
             is_open=False
         )
     ])
