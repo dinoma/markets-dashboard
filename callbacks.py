@@ -196,7 +196,7 @@ def register_callbacks(app):
 
             if "yaxis.autorange" in relayout_data or "xaxis.range[0}" in relayout_data:
                 # Dynamically adjust Y-axis to fit the data within the selected X-axis range
-                filtered_data = ohlc_df[(ohlc_df['date'] >= x_range[0}) & (ohlc_df['date'] <= x_range[1})]
+                filtered_data = ohlc_df[(ohlc_df['date'] >= x_range[0]) & (ohlc_df['date'] <= x_range[1])]
                 y_range = range_mgr.compute_y_range(filtered_data)
 
         # Add OHLC chart
@@ -254,7 +254,7 @@ def register_callbacks(app):
             if not df.empty:
 
                 df['date'] = pd.to_datetime(df['date'])
-                filtered_data = df[(df['date'] >= x_range[0}) & (df['date'] <= x_range[1})]
+                filtered_data = df[(df['date'] >= x_range[0]) & (df['date'] <= x_range[1])]
 
                 config = TRACE_CONFIG.get(subplot, {}).get(report_type, None)
 
@@ -275,7 +275,7 @@ def register_callbacks(app):
                 if subplot == 'Positions Change':
 
                     df['date'] = pd.to_datetime(df['date'])
-                    filtered_data = df[(df['date'] >= x_range[0}) & (df['date'] <= x_range[1})]
+                    filtered_data = df[(df['date'] >= x_range[0]) & (df['date'] <= x_range[1])]
 
                     if report_type == 'legacy':
 
@@ -357,7 +357,7 @@ def register_callbacks(app):
                 elif subplot == 'Net Positions Change':
 
                     df['date'] = pd.to_datetime(df['date'])
-                    filtered_data = df[(df['date'] >= x_range[0}) & (df['date'] <= x_range[1})]
+                    filtered_data = df[(df['date'] >= x_range[0]) & (df['date'] <= x_range[1])]
 
                     if report_type == 'legacy':
                         set_bar_width = 70000000
