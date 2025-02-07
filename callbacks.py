@@ -66,7 +66,7 @@ def register_callbacks(app):
     )
     def update_active_subplots(checklist_values, checklist_ids):
         active_subplots = []
-        
+
         for value, id_dict in zip(checklist_values, checklist_ids):
             if not value or 'report-type' not in id_dict:
                 continue
@@ -96,7 +96,7 @@ def register_callbacks(app):
                     '26w-index': '26W Index'  # Explicit mapping for 26w index
                 }
                 display_metric = metric_map.get(metric_part, metric_part.replace('-', ' ').title())
-                
+
                 # Handle 26w index columns for Legacy report types
                 if display_metric == '26W Index' and cot_type == 'legacy':
                     columns = ['noncomm_26w_index', 'comm_26w_index']  # Matches actual database columns
