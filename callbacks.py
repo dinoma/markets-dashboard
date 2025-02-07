@@ -109,7 +109,7 @@ def register_callbacks(app):
         [Input('tff-combined-toggle', 'n_clicks')],
         [State('tff-combined-collapse', 'is_open')]
     )
-    def toggle_disaggregated_combined(n_clicks, is_open):
+    def toggle_tff_combined(n_clicks, is_open):
         if n_clicks:
             return not is_open
         return is_open
@@ -119,7 +119,7 @@ def register_callbacks(app):
         [Input('tff-futures-only-toggle', 'n_clicks')],
         [State('tff-futures-only-collapse', 'is_open')]
     )
-    def toggle_disaggregated_futures_only(n_clicks, is_open):
+    def toggle_tff_futures_only(n_clicks, is_open):
         if n_clicks:
             return not is_open
         return is_open
