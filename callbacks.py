@@ -184,20 +184,17 @@ def register_callbacks(app):
         reset_required = triggered_prop in ['current-year.data']
 
         # Default Ranges
-        x_range = initial_x_range
-        y_range = initial_y_range
-
-        # Handle viewport changes
-        if relayout_data and not reset_required:
-            if "xaxis.range[0]" in relayout_data and "xaxis.range[1]" in relayout_data:
-                x_range_start = pd.Timestamp(relayout_data["xaxis.range[0}"])
-                x_range_end = pd.Timestamp(relayout_data["xaxis.range[1}"])
-                x_range = range_mgr.clamp_x_range(x_range_start, x_range_end)
-
-            if "yaxis.autorange" in relayout_data or "xaxis.range[0}" in relayout_data:
-                # Dynamically adjust Y-axis to fit the data within the selected X-axis range
-                filtered_data = ohlc_df[(ohlc_df['date'] >= x_range[0]) & (ohlc_df['date'] <= x_range[1])]
-                y_range = range_mgr.compute_y_range(filtered_data)
+        if reset_required:
+            x_range = initial_x_range
+            y_range = initial_y_range
+        else:
+            # Handle viewport changes
+            if relayout_data:
+                x_range = range_mgr.update_x_range(relayout_data)
+                y_range = range_mgr.update_y_range(x_range)
+            else:
+                x_range = initial_x_range
+                y_range = initial_y_range
 
         # Add OHLC chart
         if 'OHLC' in ohlc_visibility:
@@ -269,7 +266,7 @@ def register_callbacks(app):
                             col=1,
                             line_color=COLORS[color]
                         )
-                    filtered_y_range = [filtered_data.iloc[:, 1:].min(), filtered_data.iloc[:, 1:].max()]
+                    filtered_y_range = [filtered_data.iloc[:, 1:].min().min(), filtered_data.iloc[:, 1:].max().max()]
                     fig.update_yaxes(range=filtered_y_range, row=row_index, col=1, fixedrange=True)
 
                 if subplot == 'Positions Change':
@@ -394,7 +391,6 @@ def register_callbacks(app):
 
                     elif report_type == 'tff':
                         set_bar_width = 60000000
-
                         add_trace(fig, filtered_data['date'],
                                   filtered_data['pct_change_lev_money_net_positions'],
                                   f'% Change Net Positions Managed Money', row=row_index, col=1,
@@ -710,7 +706,9 @@ def register_callbacks(app):
                 create_cumulative_return_charts(start_month, start_day, end_month, end_day, direction,
                                                 ohlc_data_all_years,
                                                 optimal_results_15y, optimal_results_30y
-                                                ))
+                                                )
+
+            )
 
             # Calculate risk metrics using cumulative returns
             risk_metrics_15 = calculate_risk_metrics(daily_returns_15, cum_returns_no_stop_15)

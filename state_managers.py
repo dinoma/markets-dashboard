@@ -43,3 +43,16 @@ class RangeManager:
             max(self.initial_y_range[0], filtered_df["low"].min()),
             min(self.initial_y_range[1], filtered_df["high"].max())
         ]
+
+    def update_x_range(self, relayout_data):
+        """Update x-axis range based on relayout data"""
+        if "xaxis.range[0]" in relayout_data and "xaxis.range[1]" in relayout_data:
+            x_range_start = pd.Timestamp(relayout_data["xaxis.range[0]"])
+            x_range_end = pd.Timestamp(relayout_data["xaxis.range[1]"])
+            return self.clamp_x_range(x_range_start, x_range_end)
+        return self.initial_x_range
+
+    def update_y_range(self, x_range):
+        """Update y-axis range based on the given x_range"""
+        filtered_df = self.ohlc_df[(self.ohlc_df['date'] >= x_range[0]) & (self.ohlc_df['date'] <= x_range[1])]
+        return self.compute_y_range(filtered_df)
