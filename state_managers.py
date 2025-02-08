@@ -4,6 +4,47 @@ import pandas as pd
 import numpy as np
 from dataclasses import dataclass
 
+class ViewportHandler:
+    """Handles zoom/pan interactions and viewport state management"""
+    
+    def __init__(self, range_manager):
+        self.range_manager = range_manager
+        self.reset_required = False
+    
+    def handle_relayout(self, relayout_data, reset_required):
+        """
+        Process relayout data from plotly interactions.
+        Returns clamped x_range and computed y_range.
+        """
+        self.reset_required = reset_required
+        
+        if self.reset_required:
+            return self.reset_viewport()
+            
+        if relayout_data:
+            return self.update_viewport(relayout_data)
+            
+        return self.get_current_viewport()
+    
+    def update_viewport(self, relayout_data):
+        """Update viewport based on relayout data"""
+        x_range = self.range_manager.update_x_range(relayout_data)
+        y_range = self.range_manager.update_y_range(x_range)
+        return x_range, y_range
+    
+    def reset_viewport(self):
+        """Reset to initial ranges"""
+        self.reset_required = False
+        return self.range_manager.get_initial_ranges()
+    
+    def get_current_viewport(self):
+        """Get current valid viewport ranges"""
+        return (
+            self.range_manager.initial_x_range,
+            self.range_manager.initial_y_range
+        )
+
+
 class RangeManager:
     """Manages chart axis ranges and constraints"""
 

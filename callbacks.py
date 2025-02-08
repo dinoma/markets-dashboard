@@ -176,25 +176,15 @@ def register_callbacks(app):
 
         # Initialize range management
         range_mgr = RangeManager(ohlc_df)
-        initial_x_range, initial_y_range = range_mgr.get_initial_ranges()
-
+        viewport_handler = ViewportHandler(range_mgr)
+        
         # Determine if reset is needed (via year change)
         ctx_graph_reset = callback_context
         triggered_prop = ctx_graph_reset.triggered[0]['prop_id'] if ctx_graph_reset.triggered else None
         reset_required = triggered_prop in ['current-year.data']
 
-        # Default Ranges
-        if reset_required:
-            x_range = initial_x_range
-            y_range = initial_y_range
-        else:
-            # Handle viewport changes
-            if relayout_data:
-                x_range = range_mgr.update_x_range(relayout_data)
-                y_range = range_mgr.update_y_range(x_range)
-            else:
-                x_range = initial_x_range
-                y_range = initial_y_range
+        # Get viewport ranges through handler
+        x_range, y_range = viewport_handler.handle_relayout(relayout_data, reset_required)
 
         # Add OHLC chart
         if 'OHLC' in ohlc_visibility:
