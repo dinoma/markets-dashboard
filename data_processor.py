@@ -1,3 +1,6 @@
+import pandas as pd
+
+
 class OHLCProcessor:
     """Processes OHLC data for chart display and analysis"""
     

@@ -2,6 +2,7 @@
 
 from dash import Input, Output, State, ctx, callback_context, MATCH, ALL
 from state_managers import RangeManager, ViewportHandler, InteractionTracker
+from data_processor import OHLCProcessor
 import plotly.subplots as sp
 from layout_definitions import format_market_name
 from data_fetchers import (
