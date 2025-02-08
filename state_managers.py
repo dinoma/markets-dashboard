@@ -49,7 +49,11 @@ class ViewportHandler:
         return self.range_manager.get_initial_ranges()
     
     def get_current_viewport(self):
-        """Get current valid viewport ranges"""
+        """Get current compliant viewport ranges per RangeManager constraints
+        
+        Returns:
+            tuple: (x_range, y_range) of valid viewport bounds
+        """
         return (
             self.range_manager.initial_x_range,
             self.range_manager.initial_y_range
