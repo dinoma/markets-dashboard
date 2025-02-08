@@ -48,7 +48,8 @@ class InteractionTracker:
                 bgcolor="#1e1e1e",
                 font_size=12,
                 font_family="'Press Start 2P', monospace"
-            )
+            ),
+            xaxis="x1"  # Move xaxis configuration here from callback
         )
         return fig
     
