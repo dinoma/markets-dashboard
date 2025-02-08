@@ -410,6 +410,9 @@ def register_callbacks(app):
         fig.update_xaxes(rangeslider=dict(visible=False), type='date', row=1, col=1)
 
         fig.update_layout(
+            # Maintain consistent hover across all subplots
+            hovermode="x unified", 
+            hoversubplots="axis",
             uirevision=stored_market,
             xaxis=dict(range=x_range),
             yaxis=dict(range=y_range, fixedrange=True, autorange=False),

@@ -19,7 +19,8 @@ class InteractionTracker:
     def configure_hover(self, fig):
         """Configure plotly figure's hover interaction settings."""
         fig.update_layout(
-            hovermode="x unified",
+            hovermode="x unified",  # Show unified hover across all subplots
+            hoversubplots="axis",  # Enable hover across all subplots along vertical axis
             hoverdistance=100,
             hoverlabel=dict(
                 bgcolor="#1e1e1e",
