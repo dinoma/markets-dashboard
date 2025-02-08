@@ -4,6 +4,50 @@ import pandas as pd
 import numpy as np
 from dataclasses import dataclass
 
+class InteractionTracker:
+    """Tracks and manages user interactions (hover/click) with chart elements.
+    
+    Attributes:
+        hover_state (dict): Current hover data including position and points
+        click_state (dict): Last click data including position and clicked points
+    """
+    
+    def __init__(self):
+        self.hover_state = {}
+        self.click_state = {}
+    
+    def configure_hover(self, fig):
+        """Configure plotly figure's hover interaction settings."""
+        fig.update_layout(
+            hovermode="x unified",
+            hoverdistance=100,
+            hoverlabel=dict(
+                bgcolor="#1e1e1e",
+                font_size=12,
+                font_family="'Press Start 2P', monospace"
+            )
+        )
+        return fig
+    
+    def handle_hover(self, hover_data):
+        """Process hover events and update hover state."""
+        if hover_data:
+            self.hover_state = {
+                "x": hover_data.get("points", [{}])[0].get("x"),
+                "y": hover_data.get("points", [{}])[0].get("y"),
+                "points": hover_data.get("points", [])
+            }
+    
+    def handle_click(self, click_data):
+        """Process click events and update click state."""
+        if click_data:
+            self.click_state = {
+                "x": click_data.get("points", [{}])[0].get("x"),
+                "y": click_data.get("points", [{}])[0].get("y"), 
+                "points": click_data.get("points", [])
+            }
+
+
 class ViewportHandler:
     """Centralized handler for chart viewport interactions including zoom and pan.
     
