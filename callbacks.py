@@ -174,16 +174,17 @@ def register_callbacks(app):
             )
             return fig
 
-        # Initialize range management
+        # Initialize viewport handler with range constraints from OHLC data
         range_mgr = RangeManager(ohlc_df)
         viewport_handler = ViewportHandler(range_mgr)
         
-        # Determine if reset is needed (via year change)
+        # Detect if year changed to trigger viewport reset 
         ctx_graph_reset = callback_context
         triggered_prop = ctx_graph_reset.triggered[0]['prop_id'] if ctx_graph_reset.triggered else None
         reset_required = triggered_prop in ['current-year.data']
 
-        # Get viewport ranges through handler
+        # Handle zoom/pan interactions and get validated viewport ranges
+        # ViewportHandler manages: initial ranges, user interactions, and resets
         x_range, y_range = viewport_handler.handle_relayout(relayout_data, reset_required)
 
         # Add OHLC chart

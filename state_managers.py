@@ -5,11 +5,22 @@ import numpy as np
 from dataclasses import dataclass
 
 class ViewportHandler:
-    """Handles zoom/pan interactions and viewport state management"""
+    """Centralized handler for chart viewport interactions including zoom and pan.
+    
+    Coordinates between Plotly relayout events and RangeManager constraints.
+    Maintains viewport state between updates and handles reset requests.
+    
+    Args:
+        range_manager (RangeManager): Instance responsible for axis range calculations
+    
+    Attributes:
+        range_manager (RangeManager): The associated range manager
+        reset_required (bool): Flag tracking if viewport reset was requested
+    """
     
     def __init__(self, range_manager):
         self.range_manager = range_manager
-        self.reset_required = False
+        self.reset_required = False  # Track if reset was requested from external control
     
     def handle_relayout(self, relayout_data, reset_required):
         """
