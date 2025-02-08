@@ -14,7 +14,7 @@ from data_fetchers import (
 from dotenv import load_dotenv
 import os
 from callback_helpers import *
-from scripts.config import COLORS, market_tickers, TRACE_CONFIG
+from app.config import COLORS, market_tickers, TRACE_CONFIG
 import re
 
 

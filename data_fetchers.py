@@ -1,7 +1,7 @@
 # data_fetchers.py
 
 import pandas as pd
-from scripts.config import db_path_str
+from app.config import db_path_str
 from enum import Enum
 from datetime import timedelta
 from dateutil import parser
