@@ -39,6 +39,18 @@ class InteractionTracker:
                 "y": hover_data.get("points", [{}])[0].get("y"),
                 "points": hover_data.get("points", [])
             }
+
+    def configure_trace_hover(self, fig):
+        """Configure consistent hover behavior across all traces"""
+        fig.update_traces(
+            hoverinfo="x+y",
+            hoverlabel=dict(
+                bgcolor="#1e1e1e",
+                font_size=12,
+                font_family="'Press Start 2P', monospace"
+            )
+        )
+        return fig
     
     def handle_click(self, click_data):
         """Process click events and update click state."""
