@@ -1,4 +1,5 @@
 from data_fetcher_interface import IDataFetcher
+from data_fetchers import BaseDataFetcher
 import logging
 import time
 from exceptions import DataFetchFailedError, CacheError, DataFetcherError
