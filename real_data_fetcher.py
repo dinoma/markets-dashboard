@@ -109,16 +109,14 @@ class RealDataFetcher(IDataFetcher):
             Exception: For other unforeseen errors.
         """
         try:
-            # Implement the actual data fetching logic here.
-            # This could be a database query, API call, etc.
-            logging.info("Fetching data from the real data source.")
-            # Example: Simulate a transient error randomly
-            # Remove the following lines and implement actual fetching logic
-            import random
-            if random.choice([True, False]):
-                raise ConnectionError("Simulated connection error.")
-            data = {"example_key": "example_value"}  # Replace with real data fetching logic
-            return data
+            # Actual database query implementation
+            table_name = params.get('table_name')
+            if not table_name:
+                raise ValueError("Table name not specified in params")
+            
+            query = f"SELECT * FROM {table_name}"
+            df = BaseDataFetcher.fetch_data(query)
+            return df.to_dict('records')
         except (ConnectionError, TimeoutError) as e:
             logging.error(f"Transient error occurred: {e}")
             raise e  # These will be caught by the retry mechanism
