@@ -1,7 +1,7 @@
 # callbacks.py
 
 from dash import Input, Output, State, ctx, callback_context, MATCH, ALL
-from state_managers import RangeManager, ViewportHandler
+from state_managers import RangeManager, ViewportHandler, InteractionTracker
 import plotly.subplots as sp
 from layout_definitions import format_market_name
 from data_fetchers import (
@@ -174,11 +174,15 @@ def register_callbacks(app):
             )
             return fig
 
-        # Initialize viewport handler with range constraints from OHLC data
+        # Initialize interaction and viewport handlers
         range_mgr = RangeManager(ohlc_df)
         viewport_handler = ViewportHandler(range_mgr)
+        interaction_tracker = InteractionTracker()
         
-        # Detect if year changed to trigger viewport reset 
+        # Configure interactive features
+        fig = interaction_tracker.configure_hover(fig)
+        
+        # Detect year change triggers
         ctx_graph_reset = callback_context
         triggered_prop = ctx_graph_reset.triggered[0]['prop_id'] if ctx_graph_reset.triggered else None
         reset_required = triggered_prop in ['current-year.data']
@@ -427,8 +431,6 @@ def register_callbacks(app):
                 size=10,
                 color='white'
             ),
-            hoversubplots="axis",
-            hovermode="x unified",
             dragmode="pan"
         )
 
@@ -455,10 +457,6 @@ def register_callbacks(app):
                 fixedrange=True,
             )
 
-        fig.update_traces(hoverinfo="x+y",
-                          xaxis="x1",
-                          )
-        # If added xaxis="x1" it gives nice vertical line across all subplots but not working for Week 26 Index
 
         return fig
 
