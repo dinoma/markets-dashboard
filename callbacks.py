@@ -860,10 +860,23 @@ def register_callbacks(app):
     def update_correlation_tables(n_intervals):
         # Fetch only 180-day data
         fetcher = RealDataFetcher()
-        correlation_180d = fetcher.fetch_data({'table_name': "correlation_180_days"})
+        raw_data = fetcher.fetch_data({'table_name': "correlation_180_days"})
         
+        # Ensure raw_data is list-like
+        if not isinstance(raw_data, (list, dict)):
+            raw_data = []
+        elif isinstance(raw_data, dict):  # Convert single dict to list of dicts for DataFrame
+            raw_data = [raw_data]
+            
+        correlation_180d = pd.DataFrame(raw_data)
         def apply_ticker_prefix(df):
-            if not df.empty:
+            # Handle case where input isn't a DataFrame
+            if not isinstance(df, pd.DataFrame):
+                return pd.DataFrame()
+                
+            # Return empty DF if no data or missing required column
+            if df.empty or 'market_1' not in df.columns:
+                return pd.DataFrame()
                 df['MKT'] = df['market_1'].map(ticker_prefixes)
                 df['market_2'] = df['market_2'].map(ticker_prefixes)
                 df = df.groupby(['MKT', 'market_2'], as_index=False).agg({'correlation': 'mean'})
