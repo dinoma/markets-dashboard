@@ -181,7 +181,7 @@ def register_callbacks(app):
         
         # Configure interactive features
         fig = interaction_tracker.configure_hover(fig)
-        fig.update_traces(hoverinfo="x+y")
+        fig.update_traces(hoverinfo="x+y", xaxis="x1")
         
         # Detect year change triggers
         ctx_graph_reset = callback_context
