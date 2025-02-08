@@ -1,7 +1,7 @@
 from data_fetcher_interface import IDataFetcher
 import logging
 import time
-from exceptions import DataFetchFailedError, CacheError
+from exceptions import DataFetchFailedError, CacheError, DataFetcherError
 
 class RealDataFetcher(IDataFetcher):
     def __init__(self, cache_duration=300, max_retries=3, retry_delay=2):
@@ -36,6 +36,7 @@ class RealDataFetcher(IDataFetcher):
         
         Raises:
             DataFetchFailedError: If data fetching fails after retries.
+            DataFetcherError: If an unexpected error occurs.
             CacheError: If there is an issue with caching.
         """
         logging.debug(f"Fetching data with params: {params}")
