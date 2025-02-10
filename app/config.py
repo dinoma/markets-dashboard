@@ -74,7 +74,10 @@ class Config:
     LEGEND_PRESETS = {
         'top_left': LegendConfig(yanchor='top', xanchor='left'),
         'bottom_right': LegendConfig(yanchor='bottom', xanchor='right'),
-        'inline': LegendConfig(orientation='h', yanchor='bottom', xanchor='center')
+        'inline': LegendConfig(orientation='h', yanchor='bottom', xanchor='center'),
+        'top_right': LegendConfig(yanchor='top', xanchor='right'),
+        'bottom_left': LegendConfig(yanchor='bottom', xanchor='left'),
+        'center': LegendConfig(yanchor='middle', xanchor='center')
     }
 
     # Common axis presets
