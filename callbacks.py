@@ -259,15 +259,14 @@ def register_callbacks(app):
                     size=10,
                     color='white'),
             )
-            fig.add_annotation(
+            annotation_manager = AnnotationManager(fig)
+            annotation_manager.add_annotation(
                 text=f"No data available for {stored_market} year {current_year}.",
-                x=0.5,  # Center horizontally
-                y=0.5,  # Center vertically
-                xref="paper",  # Use paper coordinates (relative to the canvas)
-                yref="paper",  # Use paper coordinates (relative to the canvas)
-                showarrow=False,  # No arrow for the annotation
-                font=dict(size=20, color="white"),  # Customize font size and color
-                align="center"  # Center the text alignment
+                x=0.5,
+                y=0.5,
+                font_size=20,
+                color="white",
+                align="center"
             )
             return fig
 
