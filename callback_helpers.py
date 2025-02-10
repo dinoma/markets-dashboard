@@ -165,18 +165,6 @@ def add_percentile_lines(fig, data, title="", day_type='pdh'):
     )
 
 
-def calculate_sharpe_ratio(daily_returns):
-    """
-    Function to calculate Sharpe ratio.
-    Parameters:
-        - daily_returns: pd.Series, daily return percentages
-    Returns:
-        - sharpe_ratio: float, calculated Sharpe ratio
-    """
-    mean_return = daily_returns.mean()
-    std_dev = daily_returns.std()
-    sharpe_ratio = mean_return / std_dev * np.sqrt(252)  # Assuming 252 trading days per year
-    return sharpe_ratio
 
 
 def calculate_sortino_ratio(daily_returns, risk_free_rate=0):
