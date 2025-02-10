@@ -1,6 +1,7 @@
 # callbacks.py
 
 from dash import Input, Output, State, ctx, callback_context, MATCH, ALL
+from navigation_service import NavigationService
 from state_managers import RangeManager, ViewportHandler, InteractionTracker
 from data_processor import OHLCProcessor
 from plotly import graph_objects as go
@@ -23,6 +24,9 @@ import re
 # Load environment variables from .env file
 load_dotenv()
 user_tier = os.getenv("USER_TIER", "free")
+
+# Initialize navigation service
+navigation_service = NavigationService(market_tickers)
 
 # Create a dictionary to map market names to the first part of their ticker
 # Special handling for cases like 'DX-Y.NYB' and '^VIX'
