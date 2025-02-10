@@ -462,15 +462,8 @@ def register_callbacks(app):
             yaxis=dict(range=y_range, fixedrange=True, autorange=False),
             height=total_height,
             title=f'{stored_market} - Year {current_year}',
-            legend=dict(
-                orientation="v",
-                yanchor="top",
-                y=0.99,
-                xanchor="left",
-                x=0.01,
-                # itemwidth = 100,
-            ),
-            legend_bgcolor="rgba(0,0,0,0) ",
+            legend={**Config.LEGEND_PRESETS['top_left'].__dict__, 'y': 0.99, 'x': 0.01},
+            legend_bgcolor=Config.LEGEND_PRESETS['top_left'].bgcolor,
             plot_bgcolor="#1e1e1e",
             paper_bgcolor='#1e1e1e',
             font=dict(
