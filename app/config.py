@@ -32,11 +32,30 @@ class LayoutTheme:
             'padding': 10,  # Padding inside components
         }
 
+class LegendConfig:
+    """
+    Centralized legend configuration for consistent styling and positioning.
+    """
+    def __init__(self, orientation='v', yanchor='top', xanchor='left', bgcolor='rgba(0,0,0,0)'):
+        self.orientation = orientation
+        self.yanchor = yanchor
+        self.xanchor = xanchor
+        self.bgcolor = bgcolor
+
 class Config:
     """
     Global configuration class for the app.
     """
     theme = LayoutTheme()  # Initialize the theme
+    legend = LegendConfig()  # Initialize the legend config
+    
+    # Common legend presets
+    LEGEND_PRESETS = {
+        'top_left': LegendConfig(yanchor='top', xanchor='left'),
+        'bottom_right': LegendConfig(yanchor='bottom', xanchor='right'),
+        'inline': LegendConfig(orientation='h', yanchor='bottom', xanchor='center')
+    }
+
     """
     Configuration settings for the application.
     """
