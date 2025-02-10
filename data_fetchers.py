@@ -95,6 +95,27 @@ class BaseDataFetcher:
         return SeasonalDataFetcher.fetch_seasonal_data(market, years, base_year)
 
     @staticmethod
+    def fetch_ohlc_data_by_range(market, start_date, end_date):
+        """
+        Fetch OHLC data for a given market within a date range.
+
+        Args:
+            market (str): The market name.
+            start_date (str): The start date in the format 'YYYY-MM-DD'.
+            end_date (str): The end date in the format 'YYYY-MM-DD'.
+
+        Returns:
+            pd.DataFrame: DataFrame containing the OHLC data.
+        """
+        table_name = f"{market.lower().replace(' ', '_')}_ohlc"
+        print(f"Fetching OHLC from table: {table_name} for date range: {start_date} to {end_date}")
+
+        query = f"SELECT * FROM {table_name} WHERE date BETWEEN :start_date AND :end_date"
+        params = {'start_date': f'{start_date} 00:00:00', 'end_date': f'{end_date} 23:59:59'}
+
+        return OHLCDataFetcher.fetch_data(query, params)
+
+    @staticmethod
     def fetch_data(query, params=None):
         """
         Fetch data from the database using the given query and parameters.
