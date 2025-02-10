@@ -171,7 +171,7 @@ class SeasonalityFetcher(RealDataFetcher):
     """Specialized fetcher for seasonality data"""
     def _fetch_from_source(self, params):
         try:
-            return fetch_seasonal_data_cached(
+            return BaseDataFetcher.fetch_seasonal_data_cached(
                 params['market'],
                 params['years'],
                 params['base_year']

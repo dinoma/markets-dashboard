@@ -73,9 +73,6 @@ def fetch_active_subplot_data(market, year, subplot, table_suffix, report_type):
     fetcher = ReportDataFetcher(config)
     return fetcher.fetch(market, year, table_suffix, report_type)
 
-@lru_cache(maxsize=5)
-def fetch_seasonal_data_cached(market, years, base_year):
-    return SeasonalDataFetcher.fetch_seasonal_data(market, years, base_year)
 
 class BaseDataFetcher:
     """
@@ -91,6 +88,11 @@ class BaseDataFetcher:
             
         fetcher = ReportDataFetcher(config)
         return fetcher.fetch(market, year, table_suffix, report_type)
+
+    @staticmethod
+    def fetch_seasonal_data_cached(market, years, base_year):
+        """Fetch seasonal data from cache or source"""
+        return SeasonalDataFetcher.fetch_seasonal_data(market, years, base_year)
 
     @staticmethod
     def fetch_data(query, params=None):
