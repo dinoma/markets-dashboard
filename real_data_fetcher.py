@@ -179,6 +179,21 @@ class SeasonalityFetcher(RealDataFetcher):
         except Exception as e:
             logging.error(f"Seasonality fetch failed: {e}")
             raise DataFetchFailedError("Failed to fetch seasonality data") from e
+
+class OHLCFetcher(RealDataFetcher):
+    """Specialized fetcher for OHLC data"""
+    def _fetch_from_source(self, params):
+        try:
+            return BaseDataFetcher.fetch_ohlc_data_by_range(
+                params['market'],
+                params['start_date'],
+                params['end_date']
+            )
+        except Exception as e:
+            logging.error(f"OHLC fetch failed: {e}")
+            raise DataFetchFailedError("Failed to fetch OHLC data") from e
+
+    def _generate_cache_key(self, params):
         """
         Generates a unique cache key based on the provided parameters.
         Assumes that params is a dictionary with hashable values.

@@ -5,7 +5,7 @@ from state_managers import RangeManager, ViewportHandler, InteractionTracker
 from data_processor import OHLCProcessor
 import plotly.subplots as sp
 from layout_definitions import format_market_name
-from real_data_fetcher import RealDataFetcher, SubplotFetcher, SeasonalityFetcher
+from real_data_fetcher import RealDataFetcher, SubplotFetcher, SeasonalityFetcher, OHLCFetcher
 from data_fetchers import (
     fetch_ohlc_data_cached,
     fetch_active_subplot_data
@@ -143,7 +143,12 @@ def register_callbacks(app):
         end_date_str = f"{current_year}-12-31"
         # Phase 1: Data pipeline validation
         print(f"Fetching OHLC data for {stored_market} ({current_year})")
-        ohlc_df = fetch_ohlc_data_cached(stored_market, start_date_str, end_date_str)
+        ohlc_fetcher = OHLCFetcher()
+        ohlc_df = ohlc_fetcher.fetch_data({
+            'market': stored_market,
+            'start_date': start_date_str,
+            'end_date': end_date_str
+        })
         
         if not ohlc_df.empty:
             print(f"Retrieved {len(ohlc_df)} OHLC records | Date range: {ohlc_df['date'].min()} to {ohlc_df['date'].max()}")
