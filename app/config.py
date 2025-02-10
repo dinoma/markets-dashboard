@@ -145,6 +145,20 @@ market_codes = {
     # 'Platinum': '076651',
 }
 
+SEASONALITY_CONFIG = {
+    'colors': {
+        5: '#1f77b4',
+        10: '#ff7f0e', 
+        15: '#2ca02c',
+        20: '#d62728',
+        25: '#9467bd',
+        30: '#8c564b'
+    },
+    'line_width': 1.5,
+    'opacity': 0.8,
+    'line_dash': 'solid'
+}
+
 CANDLESTICK_CONFIG = {
     'increasing_color': 'green',
     'decreasing_color': 'red',
