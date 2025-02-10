@@ -42,6 +42,16 @@ class LegendConfig:
         self.xanchor = xanchor
         self.bgcolor = bgcolor
 
+class LegendConfig:
+    """
+    Centralized legend configuration for consistent styling and positioning.
+    """
+    def __init__(self, orientation='v', yanchor='top', xanchor='left', bgcolor='rgba(0,0,0,0)'):
+        self.orientation = orientation  # Vertical or horizontal
+        self.yanchor = yanchor  # Vertical anchor (top, middle, bottom)
+        self.xanchor = xanchor  # Horizontal anchor (left, center, right)
+        self.bgcolor = bgcolor  # Background color
+
 class AxisPreset:
     """
     Centralized axis configuration for consistent styling and behavior.
