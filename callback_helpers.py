@@ -7,6 +7,7 @@ from sklearn.cluster import KMeans
 from datetime import timedelta
 from dash import html
 from app.config import DEFAULT_MARKET  # market_tickers, DEFAULT_YEAR
+from metrics_calculator import MetricsCalculator
 
 
 def add_trace(fig, x, y, trace_name, row, col, mode='lines', line_color=None, secondary_y=False, chart_type='line',
