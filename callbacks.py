@@ -4,7 +4,7 @@ from dash import Input, Output, State, ctx, callback_context, MATCH, ALL
 from state_managers import RangeManager, ViewportHandler, InteractionTracker
 from data_processor import OHLCProcessor
 from plotly import graph_objects as go
-from app.config import CANDLESTICK_CONFIG, SEASONALITY_CONFIG, POSITION_CHANGE_CONFIG
+from app.config import CANDLESTICK_CONFIG, SEASONALITY_CONFIG, POSITION_CHANGE_CONFIG, Config
 import plotly.subplots as sp
 from layout_definitions import format_market_name
 from real_data_fetcher import RealDataFetcher, SubplotFetcher, SeasonalityFetcher, OHLCFetcher
@@ -485,24 +485,11 @@ def register_callbacks(app):
         print(f"Finalizing layout with {num_rows} rows")
         assert num_rows == 1 + len(active_subplots), "Subplot row count mismatch"
         
-        # Dynamically update axes settings for each subplot
+        # Apply axis presets to all subplots
         for i in range(1, num_rows + 1):
             print(f"Updating axes for row {i}/{num_rows}")
-            fig.update_xaxes(
-                showgrid=False,  # Hide x-axis grid lines
-                zeroline=False,  # Hide x-axis zero line
-                # showline=False,  # Hide x-axis line
-                # mirror=False,  # Avoid axis line mirroring
-                range=x_range, row=i, col=1
-            )
-            fig.update_yaxes(
-                showgrid=False,  # Hide y-axis grid lines
-                zeroline=False,  # Hide y-axis zero line
-                # showline=False,  # Hide y-axis line
-                # mirror=False,  # Avoid axis line mirroring
-                row=i, col=1,
-                fixedrange=True,
-            )
+            fig.update_xaxes({**Config.AXIS_PRESETS['default'].__dict__, 'range': x_range}, row=i, col=1)
+            fig.update_yaxes(Config.AXIS_PRESETS['default'].__dict__, row=i, col=1)
 
 
         return fig
