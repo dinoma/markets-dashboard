@@ -19,7 +19,7 @@ class AnnotationManager:
         self.fig = fig
         self.annotations = []
 
-    def add_annotation(self, text, x, y, xref='paper', yref='paper', **kwargs):
+    def add_annotation(self, text, x, y, xref='paper', yref='paper', font_size=12, color=None, **kwargs):
         """
         Add an annotation to the figure with consistent styling.
 
@@ -29,6 +29,8 @@ class AnnotationManager:
             y (float): Y position (0-1 for paper coordinates).
             xref (str): X reference ('paper' or 'x').
             yref (str): Y reference ('paper' or 'y').
+            font_size (int): Font size for the annotation.
+            color (str): Text color for the annotation.
             **kwargs: Additional annotation properties.
         """
         annotation = {
@@ -40,8 +42,8 @@ class AnnotationManager:
             'showarrow': False,
             'font': {
                 'family': Config.theme.fonts['family'],
-                'size': 12,
-                'color': Config.theme.colors['text']
+                'size': font_size,
+                'color': color or Config.theme.colors['text']
             },
             'bgcolor': Config.theme.colors['background'],
             'bordercolor': Config.theme.colors['grid'],
