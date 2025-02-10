@@ -34,6 +34,33 @@ class RangeFilter:
         """Get the filtered dataset"""
         return self.filtered_data
         
+    def set_price_columns(self, price_cols: list):
+        """Configure which columns represent prices"""
+        self.price_cols = price_cols
+        return self
+        
+    def apply_price_constraints(self, y_range: tuple):
+        """Constrain data to visible price range"""
+        if not hasattr(self, 'price_cols') or not self.price_cols:
+            return self
+            
+        for col in self.price_cols:
+            if col in self.filtered_data.columns:
+                self.filtered_data = self.filtered_data[
+                    (self.filtered_data[col] >= y_range[0]) & 
+                    (self.filtered_data[col] <= y_range[1])
+                ]
+        return self
+        
+    def get_valid_price_range(self) -> tuple:
+        """Get min/max prices across configured columns"""
+        if not hasattr(self, 'price_cols') or self.filtered_data.empty:
+            return (None, None)
+            
+        mins = [self.filtered_data[col].min() for col in self.price_cols]
+        maxs = [self.filtered_data[col].max() for col in self.price_cols]
+        return (min(mins), max(maxs))
+        
     def get_valid_date_range(self) -> tuple:
         """Get min/max dates for viewport constraints"""
         if self.full_data.empty:
