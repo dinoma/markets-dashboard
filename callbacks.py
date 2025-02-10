@@ -5,53 +5,6 @@ from state_managers import RangeManager, ViewportHandler, InteractionTracker
 from data_processor import OHLCProcessor
 from plotly import graph_objects as go
 from app.config import CANDLESTICK_CONFIG
-
-class CandlestickRenderer:
-    """Renders OHLC candlestick charts with configurable options."""
-    def __init__(self, ohlc_data, config):
-        """
-        Args:
-            ohlc_data (pd.DataFrame): OHLC data with 'date', 'open', 'high', 'low', 'close' columns
-            config (dict): Configuration for rendering (colors, styles, etc.)
-        """
-        self.ohlc_data = ohlc_data
-        self.config = config
-
-    def render(self, fig, row, col):
-        """
-        Adds candlestick trace to the figure.
-        
-        Args:
-            fig (plotly.Figure): Figure to add the trace to
-            row (int): Subplot row number
-            col (int): Subplot column number
-        """
-        fig.add_trace(go.Candlestick(
-            x=self.ohlc_data['date'],
-            open=self.ohlc_data['open'],
-            high=self.ohlc_data['high'],
-            low=self.ohlc_data['low'],
-            close=self.ohlc_data['close'],
-            name='OHLC',
-            increasing=dict(line=dict(color=self.config.get('increasing_color', 'green'))),
-            decreasing=dict(line=dict(color=self.config.get('decreasing_color', 'red')))
-        ), row=row, col=col)
-
-    def apply_rangebreaks(self, fig, row, col):
-        """
-        Applies rangebreaks to the x-axis to hide non-trading periods.
-        
-        Args:
-            fig (plotly.Figure): Figure to modify
-            row (int): Subplot row number
-            col (int): Subplot column number
-        """
-        processor = OHLCProcessor(self.ohlc_data)
-        fig.update_xaxes(
-            rangebreaks=processor.get_rangebreaks(),
-            row=row,
-            col=col
-        )
 import plotly.subplots as sp
 from layout_definitions import format_market_name
 from real_data_fetcher import RealDataFetcher, SubplotFetcher, SeasonalityFetcher, OHLCFetcher
@@ -81,6 +34,55 @@ for name, ticker in market_tickers.items():
         ticker_prefixes[name] = 'VIX'
     else:
         ticker_prefixes[name] = ticker.split('=')[0]
+
+
+class CandlestickRenderer:
+    """Renders OHLC candlestick charts with configurable options."""
+
+    def __init__(self, ohlc_data, config):
+        """
+        Args:
+            ohlc_data (pd.DataFrame): OHLC data with 'date', 'open', 'high', 'low', 'close' columns
+            config (dict): Configuration for rendering (colors, styles, etc.)
+        """
+        self.ohlc_data = ohlc_data
+        self.config = config
+
+    def render(self, fig, row, col):
+        """
+        Adds candlestick trace to the figure.
+
+        Args:
+            fig (plotly.Figure): Figure to add the trace to
+            row (int): Subplot row number
+            col (int): Subplot column number
+        """
+        fig.add_trace(go.Candlestick(
+            x=self.ohlc_data['date'],
+            open=self.ohlc_data['open'],
+            high=self.ohlc_data['high'],
+            low=self.ohlc_data['low'],
+            close=self.ohlc_data['close'],
+            name='OHLC',
+            increasing=dict(line=dict(color=self.config.get('increasing_color', 'green'))),
+            decreasing=dict(line=dict(color=self.config.get('decreasing_color', 'red')))
+        ), row=row, col=col)
+
+    def apply_rangebreaks(self, fig, row, col):
+        """
+        Applies rangebreaks to the x-axis to hide non-trading periods.
+
+        Args:
+            fig (plotly.Figure): Figure to modify
+            row (int): Subplot row number
+            col (int): Subplot column number
+        """
+        processor = OHLCProcessor(self.ohlc_data)
+        fig.update_xaxes(
+            rangebreaks=processor.get_rangebreaks(),
+            row=row,
+            col=col
+        )
 
 
 def register_callbacks(app):
