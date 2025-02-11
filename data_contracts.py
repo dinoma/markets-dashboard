@@ -1,5 +1,5 @@
 from typing import Dict, Any, Optional
-from pydantic import BaseModel, validator, ConfigDict
+from pydantic import BaseModel, field_validator, ValidationError, ConfigDict
 from datetime import datetime
 import pandas as pd
 from pydantic_core import core_schema
@@ -56,19 +56,22 @@ class FetchingContract(BaseModel):
                 
         return df
     
-    @validator('start_date', 'end_date', pre=True)
+    @field_validator('start_date', 'end_date', mode='before')
+    @classmethod
     def parse_dates(cls, value):
         if isinstance(value, str):
             return datetime.fromisoformat(value)
         return value
         
-    @validator('market')
+    @field_validator('market')
+    @classmethod
     def validate_market(cls, value):
         if not value or not isinstance(value, str):
             raise ValueError("Market must be a non-empty string")
         return value.strip().upper()
         
-    @validator('raw_data', pre=True)
+    @field_validator('raw_data', mode='before')
+    @classmethod
     def validate_raw_data(cls, value):
         print(f"\n=== FetchingContract raw_data validation ===")
         print(f"Input type: {type(value)}")
