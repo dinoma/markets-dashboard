@@ -3,7 +3,7 @@
 from datetime import datetime
 from dash import Input, Output, State, ctx, callback_context, MATCH, ALL
 from queues import QueueManager, FetchingQueue, ProcessingQueue
-from data_contracts import FetchingContract
+from data_contracts import FetchingContract, ProcessingContract
 from navigation_service import NavigationService
 from state_managers import RangeManager, ViewportHandler, InteractionTracker
 from data_processor import OHLCProcessor
