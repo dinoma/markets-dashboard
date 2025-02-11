@@ -727,11 +727,19 @@ def register_callbacks(app):
                         
                     # Process the data
                     processed_contract = processing_queue.dequeue_processing_contract()
-                    if processed_contract and processed_contract.processed_data is not None:
-                        ohlc_data_all_years = pd.concat([ohlc_data_all_years, processed_contract.processed_data], ignore_index=True)
-                        print(f"Processed data for {contract.market} {contract.start_date}")
+                    if processed_contract:
+                        try:
+                            # Get the processed data from the contract
+                            processed_data = processed_contract.raw_data  # Using raw_data instead of processed_data
+                            if processed_data is not None:
+                                ohlc_data_all_years = pd.concat([ohlc_data_all_years, processed_data], ignore_index=True)
+                                print(f"Successfully processed data for {contract.market} {contract.start_date}")
+                            else:
+                                print(f"Processed data is None for {contract.market} {contract.start_date}")
+                        except Exception as e:
+                            print(f"Error processing data for {contract.market} {contract.start_date}: {str(e)}")
                     else:
-                        print(f"Failed to process data for {contract.market} {contract.start_date}")
+                        print(f"No processed contract available for {contract.market} {contract.start_date}")
 
             if ohlc_data_all_years.empty:
                 # Create empty figure with consistent styling

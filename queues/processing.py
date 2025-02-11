@@ -27,6 +27,12 @@ class ProcessingQueue(BaseQueue):
         try:
             # Convert contract to dict with proper DataFrame serialization
             contract_dict = contract.to_dict()
+            
+            # Ensure raw_data is properly serialized
+            if hasattr(contract, 'raw_data') and contract.raw_data is not None:
+                if isinstance(contract.raw_data, pd.DataFrame):
+                    contract_dict['raw_data'] = contract.raw_data.to_dict(orient='records')
+            
             return self.enqueue(contract_dict)
         except Exception as e:
             self.logger.error(f"Failed to enqueue ProcessingContract: {e}")
@@ -45,6 +51,9 @@ class ProcessingQueue(BaseQueue):
             
         try:
             # Convert dict back to ProcessingContract
+            if 'raw_data' in message and isinstance(message['raw_data'], list):
+                # Convert raw_data back to DataFrame
+                message['raw_data'] = pd.DataFrame(message['raw_data'])
             return ProcessingContract(**message)
         except Exception as e:
             self.logger.error(f"Failed to parse ProcessingContract: {e}")
