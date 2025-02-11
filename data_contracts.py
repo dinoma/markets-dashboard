@@ -86,7 +86,8 @@ class FetchingContract(BaseModel):
                     value = pd.DataFrame(value)
                 # Handle case where dict values are scalars
                 else:
-                    value = pd.DataFrame([value])
+                    # Create DataFrame with index if all values are scalars
+                    value = pd.DataFrame([value], index=[0])
             except Exception as e:
                 print(f"Failed to convert dict to DataFrame: {e}")
                 print("Input dict structure:", {k: type(v) for k, v in value.items()})
