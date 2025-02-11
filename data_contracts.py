@@ -72,6 +72,8 @@ class ProcessingContract(BaseModel):
     def validate_raw_data(cls, value):
         if value is None:
             return None
+        if not isinstance(value, pd.DataFrame):
+            raise ValueError("raw_data must be a pandas DataFrame")
         required_columns = {'date', 'open', 'high', 'low', 'close'}
         if not required_columns.issubset(value.columns):
             missing = required_columns - set(value.columns)
