@@ -122,13 +122,48 @@ class FetchingContract(BaseModel):
     def to_dict(self) -> dict:
         """Convert contract to dict with DataFrame serialization"""
         data = self.model_dump()
-        # Convert datetime objects to ISO strings
-        data['start_date'] = self.start_date.isoformat()
-        data['end_date'] = self.end_date.isoformat()
-        # Convert DataFrame to dict
+        # Handle special types
+        if isinstance(self.start_date, datetime):
+            data['start_date'] = self.start_date.isoformat()
+        if isinstance(self.end_date, datetime):
+            data['end_date'] = self.end_date.isoformat()
+        
+        # Serialize DataFrame with numpy types converted to native Python types
         if isinstance(self.raw_data, pd.DataFrame):
-            data['raw_data'] = self.raw_data.to_dict(orient='records')
-        return data
+            data['raw_data'] = self.raw_data.reset_index().to_dict(orient='split')
+            data['raw_data']['_is_dataframe'] = True
+            
+        # Convert numpy types to native Python types
+        return json.loads(json.dumps(data, default=self._json_serializer))
+
+    @staticmethod
+    def _json_serializer(obj):
+        """Handle non-serializable types"""
+        if isinstance(obj, (datetime, pd.Timestamp)):
+            return obj.isoformat()
+        if isinstance(obj, pd.DataFrame):
+            return obj.reset_index().to_dict(orient='split')
+        if isinstance(obj, np.generic):
+            return obj.item()
+        raise TypeError(f"Type {type(obj)} not serializable")
+
+    def __setstate__(self, state):
+        """Custom deserialization for stored state"""
+        # Convert ISO strings back to datetimes
+        state['start_date'] = datetime.fromisoformat(state['start_date'])
+        state['end_date'] = datetime.fromisoformat(state['end_date'])
+        
+        # Convert dict back to DataFrame if needed
+        raw_data = state.get('raw_data')
+        if isinstance(raw_data, dict) and raw_data.get('_is_dataframe'):
+            state['raw_data'] = pd.DataFrame(**{
+                'data': raw_data['data'],
+                'index': raw_data['index'],
+                'columns': raw_data['columns']
+            })
+            if 'index' in state['raw_data']:
+                state['raw_data'] = state['raw_data'].set_index('index')
+        super().__setstate__(state)
 
     @classmethod
     def from_dict(cls, data: dict) -> 'FetchingContract':

@@ -25,8 +25,8 @@ class FetchingQueue(BaseQueue):
             return False
             
         try:
-            # Convert contract to dict and enqueue
-            return self.enqueue(contract.dict())
+            # Use our custom serialization
+            return self.enqueue(contract.to_dict())
         except Exception as e:
             self.logger.error(f"Failed to enqueue FetchingContract: {e}")
             return False
