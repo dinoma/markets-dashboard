@@ -80,6 +80,22 @@ class FetchingContract(BaseModel):
             print("Raw data is None")
             return None
             
+        # Handle serialized DataFrame
+        if isinstance(value, dict) and value.get('_is_dataframe'):
+            print("Deserializing DataFrame from dict")
+            try:
+                value = pd.DataFrame(**{
+                    'data': value['data'],
+                    'index': value['index'],
+                    'columns': value['columns']
+                })
+                if 'index' in value:
+                    value = value.set_index('index')
+                return value
+            except Exception as e:
+                print(f"DataFrame deserialization failed: {str(e)}")
+                raise ValueError(f"Could not deserialize DataFrame: {str(e)}")
+            
         # Convert dict to DataFrame
         if isinstance(value, dict):
             print("Converting dict to DataFrame")
@@ -107,8 +123,19 @@ class FetchingContract(BaseModel):
         if not required_columns.issubset(value.columns):
             missing = required_columns - set(value.columns)
             print(f"Missing required columns: {missing}")
-            raise ValueError(f"Missing required columns: {missing}")
             
+            # Try to create missing columns with default values
+            print("Attempting to create missing columns with default values")
+            for col in missing:
+                if col == 'date':
+                    value['date'] = value.index if isinstance(value.index, pd.DatetimeIndex) else pd.to_datetime(value.index)
+                else:
+                    value[col] = 0.0  # Default value for OHLC columns
+                    
+            # Re-check if we now have all required columns
+            if not required_columns.issubset(value.columns):
+                raise ValueError(f"Could not create missing columns: {missing}")
+                
         # Convert date column
         if 'date' in value.columns and not pd.api.types.is_datetime64_any_dtype(value['date']):
             print("Converting date column to datetime")
