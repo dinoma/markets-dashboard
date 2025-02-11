@@ -646,20 +646,49 @@ def register_callbacks(app):
             start_month, start_day = pd.to_datetime(start_date).month, pd.to_datetime(start_date).day
             end_month, end_day = pd.to_datetime(end_date).month, pd.to_datetime(end_date).day
 
-            ohlc_data_all_years = pd.DataFrame()
+            # Initialize FetchingQueue
+            fetching_queue = FetchingQueue()
+            
+            # Create and enqueue fetching contracts
             current_year = 2025
-
+            ohlc_data_all_years = pd.DataFrame()
+            
             for year_offset in years_range:
                 year = current_year - year_offset
                 start_date_str = f'{year}-{start_month:02d}-{start_day:02d}'
                 end_date_str = f'{current_year}-{end_month:02d}-{end_day:02d}'
-                ohlc_data_year = fetch_ohlc_data_cached(stored_market, start_date_str, end_date_str)
+                
+                contract = FetchingContract(
+                    market=stored_market,
+                    start_date=start_date_str,
+                    end_date=end_date_str
+                )
+                
+                if not fetching_queue.enqueue_fetching_contract(contract):
+                    print(f"Failed to enqueue contract for {year}")
+                    continue
 
+            # Process fetched data
+            while True:
+                contract = fetching_queue.dequeue_fetching_contract()
+                if not contract:
+                    break
+                    
+                # Fetch data using the contract
+                ohlc_data_year = fetch_ohlc_data_cached(
+                    contract.market, 
+                    contract.start_date, 
+                    contract.end_date
+                )
+                
                 if not ohlc_data_year.empty:
                     ohlc_data_all_years = pd.concat([ohlc_data_all_years, ohlc_data_year], ignore_index=True)
 
             if ohlc_data_all_years.empty:
                 return [], "No data available for 15-Year Summary", "No data available for 30-Year Summary", {}, {}
+                
+            # Log queue status
+            print(f"FetchingQueue status: {fetching_queue.get_queue_status()}")
 
             # Perform analysis on the fetched OHLC data (Unoptimized results)
             analysis_results = perform_analysis(start_date, end_date, direction, ohlc_data_all_years)
