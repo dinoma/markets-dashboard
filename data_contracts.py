@@ -72,12 +72,31 @@ class ProcessingContract(BaseModel):
     def validate_raw_data(cls, value):
         if value is None:
             return None
+            
+        # Convert dict to DataFrame if needed
+        if isinstance(value, dict):
+            try:
+                value = pd.DataFrame(value)
+            except Exception as e:
+                raise ValueError(f"Could not convert dict to DataFrame: {e}")
+                
+        # Validate DataFrame type
         if not isinstance(value, pd.DataFrame):
-            raise ValueError("raw_data must be a pandas DataFrame")
+            raise ValueError(f"raw_data must be a pandas DataFrame, got {type(value)}")
+            
+        # Validate required columns
         required_columns = {'date', 'open', 'high', 'low', 'close'}
         if not required_columns.issubset(value.columns):
             missing = required_columns - set(value.columns)
             raise ValueError(f"Missing required columns: {missing}")
+            
+        # Convert date column if needed
+        if 'date' in value.columns and not pd.api.types.is_datetime64_any_dtype(value['date']):
+            try:
+                value['date'] = pd.to_datetime(value['date'])
+            except Exception as e:
+                raise ValueError(f"Could not convert 'date' column to datetime: {e}")
+                
         return value
 
 class AnalysisContract(BaseModel):
