@@ -345,7 +345,18 @@ class ProcessingContract(BaseModel):
             return obj.reset_index().to_dict(orient='split')
         if isinstance(obj, np.generic):
             return obj.item()
-        raise TypeError(f"Type {type(obj)} not serializable")
+        if isinstance(obj, (np.integer, np.int_, np.intc, np.intp, np.int8, np.int16, 
+                           np.int32, np.int64, np.uint8, np.uint16, np.uint32, np.uint64)):
+            return int(obj)
+        if isinstance(obj, (np.float_, np.float16, np.float32, np.float64)):
+            return float(obj)
+        if isinstance(obj, (np.bool_, np.bool)):
+            return bool(obj)
+        if isinstance(obj, (np.ndarray, np.void)):
+            return obj.tolist()
+        if isinstance(obj, (np.recarray, np.record)):
+            return obj.tolist()
+        raise TypeError(f"Type {type(obj)} not serializable. Value: {obj}")
 
     def __setstate__(self, state):
         """Custom deserialization for stored state"""
