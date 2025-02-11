@@ -326,8 +326,7 @@ class ProcessingContract(BaseModel):
     def to_dict(self) -> dict:
         """Convert contract to dict with DataFrame serialization"""
         data = self.model_dump()
-        
-        # Serialize DataFrame with numpy types converted to native Python types
+        # Handle special types
         if isinstance(self.raw_data, pd.DataFrame):
             data['raw_data'] = self.raw_data.reset_index().to_dict(orient='split')
             data['raw_data']['_is_dataframe'] = True
