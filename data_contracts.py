@@ -13,7 +13,7 @@ class FetchingContract(BaseModel):
     end_date: datetime
     raw_data: Optional[pd.DataFrame] = None
     metadata: Dict[str, Any] = {}
-    
+
     @classmethod
     def __get_pydantic_core_schema__(cls, source_type, handler):
         return core_schema.no_info_after_validator_function(
