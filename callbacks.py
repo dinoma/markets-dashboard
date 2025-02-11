@@ -655,40 +655,50 @@ def register_callbacks(app):
             current_year = 2025
             ohlc_data_all_years = pd.DataFrame()
             
-            for year_offset in years_range:
+            # Try years in reverse order (most recent first)
+            for year_offset in sorted(years_range, reverse=True):
                 year = current_year - year_offset
                 start_date_str = f'{year}-{start_month:02d}-{start_day:02d}'
                 end_date_str = f'{current_year}-{end_month:02d}-{end_day:02d}'
                 
-                # First fetch the data
-                ohlc_data_year = fetch_ohlc_data_cached(
-                    stored_market,
-                    start_date_str,
-                    end_date_str
-                )
-
-                # Only create contract if we have data
-                if not ohlc_data_year.empty:
-
-                    # Create contract with string dates
-                    contract = FetchingContract(
-                        market=stored_market,
-                        start_date=start_date_str,
-                        end_date=end_date_str,
-                        raw_data=ohlc_data_year
-                    )
-                    
-                    # Convert contract to dict with serialized dates
-                    contract_dict = contract.to_dict()
-                    contract_dict['start_date'] = start_date_str
-                    contract_dict['end_date'] = end_date_str
-                    
-                    if not fetching_queue.enqueue_fetching_contract(contract_dict):
-                        print(f"Failed to enqueue contract for {year}")
+                # Try up to 3 previous years if no data found
+                for attempt in range(3):
+                    try_year = year - attempt
+                    if try_year < 1990:  # Don't go before 1990
                         continue
+                        
+                    print(f"Attempting year {try_year} (attempt {attempt + 1})")
+                    
+                    # Fetch data for this year
+                    ohlc_data_year = fetch_ohlc_data_cached(
+                        stored_market,
+                        f'{try_year}-{start_month:02d}-{start_day:02d}',
+                        end_date_str
+                    )
+
+                    if not ohlc_data_year.empty:
+                        # Create contract with string dates
+                        contract = FetchingContract(
+                            market=stored_market,
+                            start_date=f'{try_year}-{start_month:02d}-{start_day:02d}',
+                            end_date=end_date_str,
+                            raw_data=ohlc_data_year
+                        )
+                        
+                        # Convert contract to dict with serialized dates
+                        contract_dict = contract.to_dict()
+                        contract_dict['start_date'] = f'{try_year}-{start_month:02d}-{start_day:02d}'
+                        contract_dict['end_date'] = end_date_str
+                        
+                        if fetching_queue.enqueue_fetching_contract(contract_dict):
+                            print(f"Successfully enqueued contract for {try_year}")
+                            break  # Move to next year offset
+                        else:
+                            print(f"Failed to enqueue contract for {try_year}")
+                    else:
+                        print(f"No data found for {stored_market} from {try_year}-{start_month:02d}-{start_day:02d} to {end_date_str}")
                 else:
-                    print(f"No data found for {stored_market} from {start_date_str} to {end_date_str}")
-                    continue
+                    print(f"Exhausted all attempts for year offset {year_offset}")
 
             # Process fetched data
             while True:
