@@ -29,6 +29,9 @@ class AnalysisQueue(BaseQueue):
         try:
             # Convert contract to dict with proper DataFrame serialization
             contract_dict = contract.to_dict()
+            # Ensure the processed_data is properly serialized
+            if 'processed_data' in contract_dict and isinstance(contract_dict['processed_data'], dict):
+                contract_dict['processed_data'] = json.dumps(contract_dict['processed_data'])
             return self.enqueue(contract_dict)
         except Exception as e:
             self.logger.error(f"Failed to enqueue AnalysisContract: {e}")
@@ -47,9 +50,19 @@ class AnalysisQueue(BaseQueue):
             
         try:
             # Convert dict back to AnalysisContract
-            if 'processed_data' in message and isinstance(message['processed_data'], list):
-                # Convert processed_data back to DataFrame
-                message['processed_data'] = pd.DataFrame(message['processed_data'])
+            if 'processed_data' in message:
+                if isinstance(message['processed_data'], str):
+                    # Deserialize the processed_data if it was serialized as a string
+                    message['processed_data'] = json.loads(message['processed_data'])
+                if isinstance(message['processed_data'], dict) and message['processed_data'].get('_is_dataframe'):
+                    # Convert back to DataFrame
+                    message['processed_data'] = pd.DataFrame(**{
+                        'data': message['processed_data']['data'],
+                        'index': message['processed_data']['index'],
+                        'columns': message['processed_data']['columns']
+                    })
+                    if 'index' in message['processed_data']:
+                        message['processed_data'] = message['processed_data'].set_index('index')
             return AnalysisContract(**message)
         except Exception as e:
             self.logger.error(f"Failed to parse AnalysisContract: {e}")
