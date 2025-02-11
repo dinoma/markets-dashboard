@@ -367,8 +367,14 @@ class ProcessingContract(BaseModel):
         return cls(**data)
 
 class AnalysisContract(BaseModel):
-    """Standardized contract for analysis stage"""
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+    """Standardized contract for analysis stage with enhanced debugging"""
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True,
+        validate_default=True,
+        extra='forbid',
+        str_strip_whitespace=True,
+        str_min_length=1
+    )
     
     processed_data: pd.DataFrame
     analysis_results: Dict[str, Any] = {}
@@ -376,24 +382,155 @@ class AnalysisContract(BaseModel):
     optimal_values: Dict[str, float] = {}
     risk_metrics: Dict[str, float] = {}
     
+    def __init__(self, **data):
+        print("\n=== AnalysisContract Initialization ===")
+        print("Input data keys:", data.keys())
+        try:
+            super().__init__(**data)
+            print("Contract created successfully!")
+            self._debug_print()
+        except Exception as e:
+            print(f"Error creating contract: {str(e)}")
+            raise
+
+    def _debug_print(self):
+        """Print detailed contract information for debugging"""
+        print("\n=== Contract Details ===")
+        print(f"Analysis Results: {self.analysis_results}")
+        print(f"Metrics: {self.metrics}")
+        print(f"Optimal Values: {self.optimal_values}")
+        print(f"Risk Metrics: {self.risk_metrics}")
+        if self.processed_data is not None:
+            print("\nProcessed Data Summary:")
+            print(f"Type: {type(self.processed_data)}")
+            print(f"Shape: {self.processed_data.shape}")
+            print("Columns:", self.processed_data.columns.tolist())
+            print("Sample Data:")
+            print(self.processed_data.head(2))
+        else:
+            print("Processed Data: None")
+        print("=======================\n")
+
+    @field_validator('processed_data', mode='before')
     @classmethod
-    def __get_pydantic_core_schema__(cls, source_type, handler):
-        return core_schema.no_info_after_validator_function(
-            cls.validate_dataframe,
-            handler(pd.DataFrame)
-        )
+    def validate_processed_data(cls, value) -> Optional[pd.DataFrame]:
+        """Validate and convert processed data to DataFrame"""
+        print("\n=== Processed Data Validation ===")
         
+        if value is None:
+            print("Processed data is None")
+            return None
+            
+        # Handle serialized DataFrame
+        if isinstance(value, dict) and value.get('_is_dataframe'):
+            print("Deserializing DataFrame from dict")
+            try:
+                value = pd.DataFrame(**{
+                    'data': value['data'],
+                    'index': value['index'],
+                    'columns': value['columns']
+                })
+                if 'index' in value:
+                    value = value.set_index('index')
+                return value
+            except Exception as e:
+                print(f"DataFrame deserialization failed: {str(e)}")
+                raise ValueError(f"Could not deserialize DataFrame: {str(e)}")
+            
+        # Convert dict to DataFrame
+        if isinstance(value, dict):
+            print("Converting dict to DataFrame")
+            try:
+                # Handle nested dicts
+                if all(isinstance(v, dict) for v in value.values()):
+                    value = pd.DataFrame.from_dict(value, orient='index')
+                # Handle list values
+                elif all(isinstance(v, (list, pd.Series)) for v in value.values()):
+                    value = pd.DataFrame(value)
+                # Handle scalar values
+                else:
+                    value = pd.DataFrame([value], index=[0])
+            except Exception as e:
+                print(f"Dict conversion failed: {str(e)}")
+                raise ValueError(f"Could not convert dict to DataFrame: {str(e)}")
+                
+        # Validate DataFrame type
+        if not isinstance(value, pd.DataFrame):
+            print(f"Invalid type: {type(value)}")
+            raise ValueError(f"processed_data must be a pandas DataFrame, got {type(value)}")
+            
+        # Validate required columns
+        required_columns = {'date', 'open', 'high', 'low', 'close'}
+        if not required_columns.issubset(value.columns):
+            missing = required_columns - set(value.columns)
+            print(f"Missing required columns: {missing}")
+            
+            # Try to create missing columns with default values
+            print("Attempting to create missing columns with default values")
+            for col in missing:
+                if col == 'date':
+                    value['date'] = value.index if isinstance(value.index, pd.DatetimeIndex) else pd.to_datetime(value.index)
+                else:
+                    value[col] = 0.0  # Default value for OHLC columns
+                    
+            # Re-check if we now have all required columns
+            if not required_columns.issubset(value.columns):
+                raise ValueError(f"Could not create missing columns: {missing}")
+                
+        # Convert date column
+        if 'date' in value.columns and not pd.api.types.is_datetime64_any_dtype(value['date']):
+            print("Converting date column to datetime")
+            try:
+                value['date'] = pd.to_datetime(value['date'])
+            except Exception as e:
+                print(f"Date conversion failed: {str(e)}")
+                raise ValueError(f"Could not convert 'date' column to datetime: {str(e)}")
+                
+        print("Processed data validation successful")
+        return value
+
+    def to_dict(self) -> dict:
+        """Convert contract to dict with DataFrame serialization"""
+        data = self.model_dump()
+        # Handle special types
+        if isinstance(self.processed_data, pd.DataFrame):
+            data['processed_data'] = self.processed_data.reset_index().to_dict(orient='split')
+            data['processed_data']['_is_dataframe'] = True
+            
+        # Convert numpy types to native Python types
+        return json.loads(json.dumps(data, default=self._json_serializer))
+
     @staticmethod
-    def validate_dataframe(df: pd.DataFrame) -> pd.DataFrame:
-        """Validate DataFrame structure"""
-        if df is not None:
-            if df.empty:
-                raise ValueError("Processed data cannot be empty")
-            required_columns = {'date', 'open', 'high', 'low', 'close'}
-            if not required_columns.issubset(df.columns):
-                missing = required_columns - set(df.columns)
-                raise ValueError(f"Missing required columns: {missing}")
-        return df
+    def _json_serializer(obj):
+        """Handle non-serializable types"""
+        if isinstance(obj, (datetime, pd.Timestamp)):
+            return obj.isoformat()
+        if isinstance(obj, pd.DataFrame):
+            return obj.reset_index().to_dict(orient='split')
+        if isinstance(obj, np.generic):
+            return obj.item()
+        raise TypeError(f"Type {type(obj)} not serializable")
+
+    def __setstate__(self, state):
+        """Custom deserialization for stored state"""
+        # Convert dict back to DataFrame if needed
+        processed_data = state.get('processed_data')
+        if isinstance(processed_data, dict) and processed_data.get('_is_dataframe'):
+            state['processed_data'] = pd.DataFrame(**{
+                'data': processed_data['data'],
+                'index': processed_data['index'],
+                'columns': processed_data['columns']
+            })
+            if 'index' in state['processed_data']:
+                state['processed_data'] = state['processed_data'].set_index('index')
+        super().__setstate__(state)
+
+    @classmethod
+    def from_dict(cls, data: dict) -> 'AnalysisContract':
+        """Create contract from dict with DataFrame deserialization"""
+        if 'processed_data' in data and isinstance(data['processed_data'], list):
+            data['processed_data'] = pd.DataFrame(data['processed_data'])
+        return cls(**data)
 
 class VisualizationContract(BaseModel):
     """Standardized contract for visualization stage"""
