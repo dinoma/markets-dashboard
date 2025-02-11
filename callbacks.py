@@ -2,8 +2,8 @@
 
 from datetime import datetime
 from dash import Input, Output, State, ctx, callback_context, MATCH, ALL
-from queues import QueueManager, FetchingQueue, ProcessingQueue
-from data_contracts import FetchingContract, ProcessingContract
+from queues import QueueManager, FetchingQueue, ProcessingQueue, AnalysisQueue
+from data_contracts import FetchingContract, ProcessingContract, AnalysisContract
 from navigation_service import NavigationService
 from state_managers import RangeManager, ViewportHandler, InteractionTracker
 from data_processor import OHLCProcessor
@@ -648,9 +648,10 @@ def register_callbacks(app):
             start_month, start_day = pd.to_datetime(start_date).month, pd.to_datetime(start_date).day
             end_month, end_day = pd.to_datetime(end_date).month, pd.to_datetime(end_date).day
 
-            # Initialize queues
+            # Initialize all queues
             fetching_queue = FetchingQueue()
             processing_queue = ProcessingQueue()
+            analysis_queue = AnalysisQueue()
             
             # Create and enqueue fetching contracts
             current_year = 2025
@@ -822,9 +823,37 @@ def register_callbacks(app):
             # Log queue statuses
             print(f"FetchingQueue status: {fetching_queue.get_queue_status()}")
             print(f"ProcessingQueue status: {processing_queue.get_queue_status()}")
+            print(f"AnalysisQueue status: {analysis_queue.get_queue_status()}")
 
-            # Perform analysis on the fetched OHLC data (Unoptimized results)
-            analysis_results = perform_analysis(start_date, end_date, direction, ohlc_data_all_years)
+            # Create and enqueue analysis contract
+            analysis_contract = AnalysisContract(
+                processed_data=ohlc_data_all_years,
+                analysis_results={},
+                metrics={},
+                optimal_values={},
+                risk_metrics={}
+            )
+            
+            if not analysis_queue.enqueue_analysis_contract(analysis_contract):
+                print("Failed to enqueue analysis contract")
+                return tuple(empty_components)
+                
+            # Process analysis through queue
+            analysis_contract = analysis_queue.dequeue_analysis_contract()
+            if not analysis_contract:
+                print("Failed to dequeue analysis contract")
+                return tuple(empty_components)
+                
+            # Perform analysis on the processed data
+            analysis_results = perform_analysis(
+                start_date, 
+                end_date, 
+                direction, 
+                analysis_contract.processed_data
+            )
+            
+            # Update contract with results
+            analysis_contract.analysis_results = analysis_results
 
             # Prepare data for the yearly analysis table (Unoptimized)
             yearly_data = analysis_results['yearly_results']
