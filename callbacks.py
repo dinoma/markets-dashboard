@@ -1,5 +1,6 @@
 # callbacks.py
 
+from datetime import datetime
 from dash import Input, Output, State, ctx, callback_context, MATCH, ALL
 from queues import QueueManager, FetchingQueue
 from data_contracts import FetchingContract
@@ -661,8 +662,9 @@ def register_callbacks(app):
                 
                 contract = FetchingContract(
                     market=stored_market,
-                    start_date=start_date_str,
-                    end_date=end_date_str
+                    start_date=datetime.strptime(start_date_str, '%Y-%m-%d'),
+                    end_date=datetime.strptime(end_date_str, '%Y-%m-%d'),
+                    raw_data=None
                 )
                 
                 if not fetching_queue.enqueue_fetching_contract(contract):
