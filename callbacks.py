@@ -680,11 +680,19 @@ def register_callbacks(app):
                 # Fetch data using the contract
                 ohlc_data_year = fetch_ohlc_data_cached(
                     contract.market, 
-                    contract.start_date, 
-                    contract.end_date
+                    contract.start_date.strftime('%Y-%m-%d'), 
+                    contract.end_date.strftime('%Y-%m-%d')
                 )
                 
                 if not ohlc_data_year.empty:
+                    # Create a new contract with the fetched data
+                    updated_contract = FetchingContract(
+                        market=contract.market,
+                        start_date=contract.start_date,
+                        end_date=contract.end_date,
+                        raw_data=ohlc_data_year,
+                        metadata=contract.metadata
+                    )
                     ohlc_data_all_years = pd.concat([ohlc_data_all_years, ohlc_data_year], ignore_index=True)
 
             if ohlc_data_all_years.empty:
