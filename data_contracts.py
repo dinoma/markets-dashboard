@@ -1,15 +1,35 @@
 from typing import Dict, Any, Optional
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, validator, ConfigDict
 from datetime import datetime
 import pandas as pd
+from pydantic_core import core_schema
 
 class FetchingContract(BaseModel):
     """Standardized contract for data fetching stage"""
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    
     market: str
     start_date: datetime
     end_date: datetime
     raw_data: Optional[pd.DataFrame] = None
     metadata: Dict[str, Any] = {}
+    
+    @classmethod
+    def __get_pydantic_core_schema__(cls, source_type, handler):
+        return core_schema.no_info_after_validator_function(
+            cls.validate_dataframe,
+            handler(pd.DataFrame)
+        )
+        
+    @staticmethod
+    def validate_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+        """Validate DataFrame structure"""
+        if df is not None:
+            required_columns = {'date', 'open', 'high', 'low', 'close'}
+            if not required_columns.issubset(df.columns):
+                missing = required_columns - set(df.columns)
+                raise ValueError(f"Missing required columns: {missing}")
+        return df
     
     @validator('start_date', 'end_date', pre=True)
     def parse_dates(cls, value):
@@ -25,11 +45,28 @@ class FetchingContract(BaseModel):
 
 class ProcessingContract(BaseModel):
     """Standardized contract for data processing stage"""
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    
     raw_data: pd.DataFrame
     processed_data: Optional[pd.DataFrame] = None
     validation_rules: Dict[str, Any] = {}
     cleaning_steps: Dict[str, Any] = {}
     transformation_steps: Dict[str, Any] = {}
+    
+    @classmethod
+    def __get_pydantic_core_schema__(cls, source_type, handler):
+        return core_schema.no_info_after_validator_function(
+            cls.validate_dataframe,
+            handler(pd.DataFrame)
+        )
+        
+    @staticmethod
+    def validate_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+        """Validate DataFrame structure"""
+        if df is not None:
+            if df.empty:
+                raise ValueError("DataFrame cannot be empty")
+        return df
     
     @validator('raw_data')
     def validate_raw_data(cls, value):
