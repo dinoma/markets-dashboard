@@ -685,12 +685,7 @@ def register_callbacks(app):
                             raw_data=ohlc_data_year
                         )
                         
-                        # Convert contract to dict with serialized dates
-                        contract_dict = contract.to_dict()
-                        contract_dict['start_date'] = f'{try_year}-{start_month:02d}-{start_day:02d}'
-                        contract_dict['end_date'] = end_date_str
-                        
-                        if fetching_queue.enqueue_fetching_contract(contract_dict):
+                        if fetching_queue.enqueue_fetching_contract(contract):
                             print(f"Successfully enqueued contract for {try_year}")
                             break  # Move to next year offset
                         else:
@@ -702,12 +697,9 @@ def register_callbacks(app):
 
             # Process fetched data
             while True:
-                contract_dict = fetching_queue.dequeue_fetching_contract()
-                if not contract_dict:
+                contract = fetching_queue.dequeue_fetching_contract()
+                if not contract:
                     break
-                    
-                # Convert back to FetchingContract
-                contract = FetchingContract.from_dict(contract_dict)
                 
                 # Fetch data using the contract
                 ohlc_data_year = fetch_ohlc_data_cached(
