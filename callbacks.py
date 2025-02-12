@@ -741,14 +741,14 @@ def register_callbacks(app):
              State('stored-market', 'data')],
             prevent_initial_call=True
         )
-        def perform_analysis_and_update_layout(ohlc_data, seasonality_data, subplot_data, n_clicks, n_intervals,
+        def perform_analysis_and_update_layout(processed_data, n_clicks, n_intervals,
                                                start_date, end_date, direction, years_range, stored_market):
 
-            # Convert stored data back to DataFrames
-            ohlc_df = pd.DataFrame(ohlc_data) if ohlc_data else pd.DataFrame()
+            # Get processed data
+            ohlc_df = pd.DataFrame(processed_data.get('ohlc', []))
             seasonality_dfs = {years: pd.DataFrame(data) for years, data in
-                               seasonality_data.items()} if seasonality_data else {}
-            subplot_dfs = {key: pd.DataFrame(data) for key, data in subplot_data.items()} if subplot_data else {}
+                               processed_data.get('seasonality', {}).items()}
+            subplot_dfs = {key: pd.DataFrame(data) for key, data in processed_data.get('subplots', {}).items()}
 
             start_month, start_day = pd.to_datetime(start_date).month, pd.to_datetime(start_date).day
             end_month, end_day = pd.to_datetime(end_date).month, pd.to_datetime(end_date).day
