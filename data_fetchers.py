@@ -164,33 +164,49 @@ class BaseDataFetcher:
 
         Returns:
             pd.DataFrame: The processed DataFrame.
+
+        Raises:
+            DataProcessingError: If processing fails
         """
+        if not isinstance(df, pd.DataFrame):
+            raise DataProcessingError("Input must be a pandas DataFrame")
+            
         if df.empty:
-            print("Fetched DataFrame is empty.")
             return df
 
-        # Example: Parse date columns if they exist
-        date_columns = ['date', 'report_date_as_yyyy_mm_dd']
-        for col in date_columns:
-            if col in df.columns:
-                df[col] = pd.to_datetime(df[col], errors='coerce')
+        try:
+            # Create a copy to avoid modifying the original
+            processed_df = df.copy()
 
-        # Example: Sort by date if 'date' column exists
-        if 'date' in df.columns:
-            df.sort_values(by='date', inplace=True)
+            # Parse date columns if they exist
+            date_columns = ['date', 'report_date_as_yyyy_mm_dd']
+            for col in date_columns:
+                if col in processed_df.columns:
+                    processed_df[col] = pd.to_datetime(processed_df[col], errors='coerce')
 
-        if 'report_date_as_yyyy_mm_dd' in df.columns:
-            df.sort_values(by='report_date_as_yyyy_mm_dd', inplace=True)
+            # Sort by date if 'date' column exists
+            if 'date' in processed_df.columns:
+                processed_df = processed_df.sort_values(by='date')
 
-        # Example: Clean OHLC data if relevant columns exist
-        ohlc_columns = ['open', 'high', 'low', 'close']
-        for col in ohlc_columns:
-            if col in df.columns:
-                df[col] = df[col].astype(str).str.replace(',', '').astype(float)
+            if 'report_date_as_yyyy_mm_dd' in processed_df.columns:
+                processed_df = processed_df.sort_values(by='report_date_as_yyyy_mm_dd')
 
-        # Additional common processing steps can be added here
+            # Clean OHLC data if relevant columns exist
+            ohlc_columns = ['open', 'high', 'low', 'close']
+            for col in ohlc_columns:
+                if col in processed_df.columns:
+                    # Convert to string, remove commas, then to float
+                    processed_df[col] = (
+                        processed_df[col]
+                        .astype(str)
+                        .str.replace(',', '')
+                        .replace('', '0')  # Handle empty strings
+                        .astype(float)
+                    )
 
-        return df
+            return processed_df
+        except Exception as e:
+            raise DataProcessingError(f"Error in common processing: {str(e)}")
 
     @staticmethod
     def validate_table_name(table_name):

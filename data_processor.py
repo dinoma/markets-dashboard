@@ -124,20 +124,36 @@ class OHLCProcessor:
     """Processes OHLC data for chart display and analysis"""
     
     def __init__(self, ohlc_df):
-        self.ohlc_df = ohlc_df.copy()
+        if not isinstance(ohlc_df, pd.DataFrame):
+            raise DataValidationError("Input must be a pandas DataFrame")
+        self.ohlc_df = ohlc_df.copy() if ohlc_df is not None else pd.DataFrame()
         self.dt_breaks = []
         
     def calculate_date_ranges(self):
         """Calculate complete timeline and date gaps"""
-        if self.ohlc_df.empty:
+        if self.ohlc_df.empty or 'date' not in self.ohlc_df.columns:
+            self.dt_all = pd.DatetimeIndex([])
+            self.dt_obs = []
+            self.dt_breaks = []
             return self
         
-        dates = self.ohlc_df['date']
-        self.dt_all = pd.date_range(start=dates.min(), end=dates.max())
-        self.dt_obs = dates.dt.strftime("%Y-%m-%d").tolist()
-        self.dt_breaks = [d for d in self.dt_all.strftime("%Y-%m-%d").tolist() 
-                         if d not in self.dt_obs]
-        return self
+        try:
+            dates = pd.to_datetime(self.ohlc_df['date'], errors='coerce')
+            valid_dates = dates.dropna()
+            
+            if valid_dates.empty:
+                self.dt_all = pd.DatetimeIndex([])
+                self.dt_obs = []
+                self.dt_breaks = []
+                return self
+                
+            self.dt_all = pd.date_range(start=valid_dates.min(), end=valid_dates.max())
+            self.dt_obs = valid_dates.dt.strftime("%Y-%m-%d").tolist()
+            self.dt_breaks = [d for d in self.dt_all.strftime("%Y-%m-%d").tolist() 
+                            if d not in self.dt_obs]
+            return self
+        except Exception as e:
+            raise DataProcessingError(f"Error calculating date ranges: {str(e)}")
     
     def get_rangebreaks(self):
         """Get missing dates for plotly axis rangebreaks"""
