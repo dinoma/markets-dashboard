@@ -1274,15 +1274,4 @@ def register_callbacks(app):
             return df
 
         correlation_180d = apply_ticker_prefix(correlation_180d)
-
-        # Process columns dynamically
-        columns = [{'name': 'MKT', 'id': 'MKT'}]
-        if not correlation_180d.empty:
-            # Get actual market columns from data
-            markets = [col for col in correlation_180d.columns if col != 'MKT']
-            columns += [{'name': col, 'id': col} for col in markets]
-        
-        return (
-            correlation_180d.to_dict('records') if not correlation_180d.empty else [],
-            columns
-        )
+        return table_visualizer.render_correlation_table(correlation_180d)
