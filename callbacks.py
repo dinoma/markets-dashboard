@@ -648,9 +648,9 @@ def register_callbacks(app):
                 try:
                     ohlc_df = pd.DataFrame(ohlc_data)
                     if not ohlc_df.empty:
-                        ohlc_df = processor.validate_structure(ohlc_df)
-                        ohlc_df = processor.clean_data(ohlc_df)
-                        ohlc_df = processor.transform_data(ohlc_df)
+                        ohlc_df = processor.clean_data(
+                            processor.validate_structure(ohlc_df)
+                        )
                         processed_data['ohlc'] = ohlc_df.to_dict('records')
                 except Exception as e:
                     print(f"Error processing OHLC data: {e}")
@@ -662,9 +662,9 @@ def register_callbacks(app):
                         if data and isinstance(data, list):
                             df = pd.DataFrame(data)
                             if not df.empty:
-                                df = processor.validate_structure(df)
-                                df = processor.clean_data(df)
-                                df = processor.transform_data(df)
+                                df = processor.clean_data(
+                                    processor.validate_structure(df)
+                                )
                                 processed_data['seasonality'][years] = df.to_dict('records')
                 except Exception as e:
                     print(f"Error processing seasonality data: {e}")
@@ -676,9 +676,9 @@ def register_callbacks(app):
                         if data and isinstance(data, list):
                             df = pd.DataFrame(data)
                             if not df.empty:
-                                df = processor.validate_structure(df)
-                                df = processor.clean_data(df)
-                                df = processor.transform_data(df)
+                                df = processor.clean_data(
+                                    processor.validate_structure(df)
+                                )
                                 processed_data['subplots'][key] = df.to_dict('records')
                 except Exception as e:
                     print(f"Error processing subplot data: {e}")

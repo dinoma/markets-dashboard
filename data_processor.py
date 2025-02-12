@@ -43,7 +43,7 @@ class DataProcessor:
         except Exception as e:
             raise DataProcessingError(f"Data processing failed: {str(e)}")
 
-    def validate_structure(self, data: pd.DataFrame) -> bool:
+    def validate_structure(self, data: pd.DataFrame) -> pd.DataFrame:
         """
         Validate data structure and content
         
@@ -51,7 +51,7 @@ class DataProcessor:
             data: DataFrame to validate
             
         Returns:
-            True if validation passes
+            The validated DataFrame
             
         Raises:
             DataValidationError: If validation fails
@@ -63,7 +63,7 @@ class DataProcessor:
         if missing_columns:
             raise DataValidationError(f"Missing required columns: {missing_columns}")
             
-        return True
+        return data
 
     def clean_data(self, data: pd.DataFrame) -> pd.DataFrame:
         """
