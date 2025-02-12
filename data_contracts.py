@@ -578,18 +578,86 @@ class AnalysisContract(BaseModel):
         return cls(**data)
 
 class VisualizationContract(BaseModel):
-    """Standardized contract for visualization stage"""
+    """Standardized contract for visualization stage with enhanced debugging"""
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True,
+        validate_default=True,
+        extra='forbid',
+        str_strip_whitespace=True,
+        str_min_length=1
+    )
+    
     analysis_results: Dict[str, Any]
     charts: Dict[str, Any] = {}
     tables: Dict[str, Any] = {}
     summaries: Dict[str, str] = {}
     layout_config: Dict[str, Any] = {}
     
+    def __init__(self, **data):
+        print("\n=== VisualizationContract Initialization ===")
+        print("Input data keys:", data.keys())
+        try:
+            super().__init__(**data)
+            print("Contract created successfully!")
+            self._debug_print()
+        except Exception as e:
+            print(f"Error creating contract: {str(e)}")
+            raise
+
+    def _debug_print(self):
+        """Print detailed contract information for debugging"""
+        print("\n=== Contract Details ===")
+        print(f"Analysis Results: {self.analysis_results}")
+        print(f"Charts: {self.charts}")
+        print(f"Tables: {self.tables}")
+        print(f"Summaries: {self.summaries}")
+        print(f"Layout Config: {self.layout_config}")
+        print("=======================\n")
+
     @field_validator('analysis_results')
+    @classmethod
     def validate_analysis_results(cls, value):
+        """Validate analysis results"""
         if not value:
             raise ValueError("Analysis results cannot be empty")
         return value
+
+    def to_dict(self) -> dict:
+        """Convert contract to dict with proper serialization"""
+        data = self.model_dump()
+        # Convert numpy types to native Python types
+        return json.loads(json.dumps(data, default=self._json_serializer))
+
+    @staticmethod
+    def _json_serializer(obj):
+        """Handle non-serializable types"""
+        if isinstance(obj, (datetime, pd.Timestamp)):
+            return obj.isoformat()
+        if isinstance(obj, pd.DataFrame):
+            return obj.reset_index().to_dict(orient='split')
+        if isinstance(obj, np.generic):
+            return obj.item()
+        if isinstance(obj, (np.integer, np.int_, np.intc, np.intp, np.int8, np.int16, 
+                           np.int32, np.int64, np.uint8, np.uint16, np.uint32, np.uint64)):
+            return int(obj)
+        if isinstance(obj, (np.float_, np.float16, np.float32, np.float64)):
+            return float(obj)
+        if isinstance(obj, (np.bool_, np.bool)):
+            return bool(obj)
+        if isinstance(obj, (np.ndarray, np.void)):
+            return obj.tolist()
+        if isinstance(obj, (np.recarray, np.record)):
+            return obj.tolist()
+        raise TypeError(f"Type {type(obj)} not serializable. Value: {obj}")
+
+    def __setstate__(self, state):
+        """Custom deserialization for stored state"""
+        super().__setstate__(state)
+
+    @classmethod
+    def from_dict(cls, data: dict) -> 'VisualizationContract':
+        """Create contract from dict"""
+        return cls(**data)
 
 class UIRenderingContract(BaseModel):
     """Standardized contract for UI rendering stage"""
