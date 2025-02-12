@@ -350,7 +350,7 @@ class ProcessingContract(BaseModel):
             return int(obj)
         if isinstance(obj, (np.float_, np.float16, np.float32, np.float64)):
             return float(obj)
-        if isinstance(obj, (np.bool_, np.bool)):
+        if isinstance(obj, np.bool_):
             return bool(obj)
         if isinstance(obj, (np.ndarray, np.void)):
             return obj.tolist()
