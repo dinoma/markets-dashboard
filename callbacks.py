@@ -1138,10 +1138,10 @@ def register_callbacks(app):
             stats_1_df = pd.concat([stats_1_df, total_1_row], ignore_index=True)
 
             # Convert the DataFrame to a dictionary for Dash DataTable
-            day_trading_stats = stats_df.to_dict('records')
-            day_trading_stats_1 = stats_1_df.to_dict('records')
-            day_trading_stats_weekday = stats_weekday_df.to_dict('records')
-            day_trading_stats_1_weekday = stats_1_weekday_df.to_dict('records')
+            day_trading_stats = table_visualizer.render_day_trading_stats(stats_df)
+            day_trading_stats_1 = table_visualizer.render_day_trading_stats(stats_1_df)
+            day_trading_stats_weekday = table_visualizer.render_day_trading_stats(stats_weekday_df)
+            day_trading_stats_1_weekday = table_visualizer.render_day_trading_stats(stats_1_weekday_df)
 
             summary_15_text = (
                 f"15-Year Summary:\n"
