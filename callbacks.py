@@ -1024,6 +1024,12 @@ def register_callbacks(app):
 
             # Prepare data for the yearly analysis table (Unoptimized)
             yearly_data = analysis_results['yearly_results']
+            print(f"Yearly data type: {type(yearly_data)}")
+            if isinstance(yearly_data, dict):
+                print(f"Yearly data keys: {yearly_data.keys()}")
+            elif isinstance(yearly_data, (list, pd.DataFrame)):
+                print(f"Yearly data length: {len(yearly_data)}")
+                
             yearly_analysis_table = table_visualizer.render_yearly_analysis(yearly_data)
 
             # Prepare summaries for 15 years and 30 years - No-Stop loss returns per year for Summary table

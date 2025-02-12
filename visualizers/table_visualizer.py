@@ -59,6 +59,10 @@ class TableVisualizer:
             if 'Value' in data.columns:
                 data['Value'] = pd.to_numeric(data['Value'], errors='coerce')
             
+            # Add debug logging
+            self.logger.debug(f"Yearly analysis data columns: {data.columns.tolist()}")
+            self.logger.debug(f"Yearly analysis data sample: {data.head().to_dict('records')}")
+            
             # Create table with proper formatting
             table = dash_table.DataTable(
                 data=data.to_dict("records"),
