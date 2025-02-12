@@ -607,7 +607,7 @@ class VisualizationContract(BaseModel):
     def _debug_print(self):
         """Print detailed contract information for debugging"""
         print("\n=== Contract Details ===")
-        print(f"Analysis Results: {self.analysis_results}")
+        # print(f"Analysis Results: {self.analysis_results}")
         print(f"Charts: {self.charts}")
         print(f"Tables: {self.tables}")
         print(f"Summaries: {self.summaries}")
