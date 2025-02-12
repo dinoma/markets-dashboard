@@ -95,14 +95,21 @@ class TableVisualizer:
         self.logger.info("Rendering correlation table")
         
         try:
-            if not self.validate_data(data, "correlation_table"):
+            # Handle empty DataFrame
+            if data.empty:
+                self.logger.warning("Empty DataFrame received for correlation table")
                 fallback_table = self.generate_fallback_table("correlation_table")
                 return fallback_table.data, [{"name": col, "id": col} for col in fallback_table.data[0].keys()]
             
-            return (
-                data.to_dict("records"),
-                [{"name": col, "id": col} for col in data.columns]
-            )
+            # Convert DataFrame to records
+            table_data = data.to_dict("records")
+            
+            # Generate columns dynamically
+            columns = [{"name": col, "id": col} for col in data.columns]
+            
+            self.logger.debug(f"Rendered table with {len(table_data)} rows and {len(columns)} columns")
+            return table_data, columns
+            
         except Exception as e:
             self.logger.error(f"Error rendering correlation table: {str(e)}")
             fallback_table = self.generate_fallback_table("correlation_table")

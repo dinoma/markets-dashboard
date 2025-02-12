@@ -1278,5 +1278,14 @@ def register_callbacks(app):
             return df
 
         correlation_180d = apply_ticker_prefix(correlation_180d)
+        
+        # Ensure we have a valid DataFrame
+        if not isinstance(correlation_180d, pd.DataFrame):
+            correlation_180d = pd.DataFrame()
+            
+        # Log the data shape and columns for debugging
+        print(f"Correlation data shape: {correlation_180d.shape}")
+        print(f"Correlation columns: {correlation_180d.columns.tolist()}")
+        
         table_data, table_columns = table_visualizer.render_correlation_table(correlation_180d)
         return table_data, table_columns
