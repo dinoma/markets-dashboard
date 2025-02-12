@@ -2,8 +2,8 @@
 
 from datetime import datetime
 from dash import Input, Output, State, ctx, callback_context, MATCH, ALL
-from queues import QueueManager, FetchingQueue, ProcessingQueue, AnalysisQueue
-from data_contracts import FetchingContract, ProcessingContract, AnalysisContract
+from queues import QueueManager, FetchingQueue, ProcessingQueue, AnalysisQueue, VisualizationQueue
+from data_contracts import FetchingContract, ProcessingContract, AnalysisContract, VisualizationContract
 from navigation_service import NavigationService
 from state_managers import RangeManager, ViewportHandler, InteractionTracker
 from data_processor import OHLCProcessor
@@ -715,11 +715,13 @@ def register_callbacks(app):
                 fetching_queue = FetchingQueue()
                 processing_queue = ProcessingQueue()
                 analysis_queue = AnalysisQueue()
+                visualization_queue = VisualizationQueue()
                 
                 # Log queue initialization status
                 print(f"FetchingQueue initialized: {fetching_queue.get_queue_status()}")
                 print(f"ProcessingQueue initialized: {processing_queue.get_queue_status()}")
                 print(f"AnalysisQueue initialized: {analysis_queue.get_queue_status()}")
+                print(f"VisualizationQueue initialized: {visualization_queue.get_queue_status()}")
             except Exception as e:
                 print(f"Failed to initialize queues: {e}")
                 return tuple(empty_components)
@@ -832,6 +834,7 @@ def register_callbacks(app):
             print(f"FetchingQueue status: {fetching_queue.get_queue_status()}")
             print(f"ProcessingQueue status: {processing_queue.get_queue_status()}")
             print(f"AnalysisQueue status: {analysis_queue.get_queue_status()}")
+            print(f"VisualizationQueue status: {visualization_queue.get_queue_status()}")
 
             # Create and enqueue analysis contract with error handling
             try:
@@ -864,12 +867,33 @@ def register_callbacks(app):
                 # Update contract with results
                 analysis_contract.analysis_results = analysis_results
                 
-                # Log successful analysis
+                # Create visualization contract
+                visualization_contract = VisualizationContract(
+                    analysis_results=analysis_contract.analysis_results,
+                    charts={},
+                    tables={},
+                    summaries={},
+                    layout_config={}
+                )
+                
+                # Enqueue visualization contract
+                if not visualization_queue.enqueue_visualization_contract(visualization_contract):
+                    print("Failed to enqueue visualization contract")
+                    return tuple(empty_components)
+                    
+                # Process visualization through queue
+                visualization_contract = visualization_queue.dequeue_visualization_contract()
+                if not visualization_contract:
+                    print("Failed to dequeue visualization contract")
+                    return tuple(empty_components)
+                
+                # Log successful analysis and visualization
                 print(f"Analysis completed successfully for {stored_market} {start_date} to {end_date}")
                 print(f"Analysis queue status: {analysis_queue.get_queue_status()}")
+                print(f"Visualization queue status: {visualization_queue.get_queue_status()}")
                 
             except Exception as e:
-                print(f"Error during analysis: {e}")
+                print(f"Error during analysis/visualization: {e}")
                 return tuple(empty_components)
 
             # Prepare data for the yearly analysis table (Unoptimized)
