@@ -1,5 +1,5 @@
 # data_fetchers.py
-
+from data_processor import DataProcessingError
 import pandas as pd
 from app.config import db_path_str
 from enum import Enum
