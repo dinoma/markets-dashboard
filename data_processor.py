@@ -91,7 +91,7 @@ class DataProcessor:
         # Handle missing values in numeric columns
         for col in self.validation_rules['numeric_columns']:
             if col in cleaned_data.columns:
-                cleaned_data[col] = cleaned_data[col].fillna(method='ffill').fillna(method='bfill')
+                cleaned_data[col] = cleaned_data[col].ffill().bfill()
         
         return cleaned_data
 
