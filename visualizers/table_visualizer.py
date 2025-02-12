@@ -30,12 +30,12 @@ class TableVisualizer:
         )
         self.logger = logging.getLogger(__name__)
 
-    def render_yearly_analysis(self, data: pd.DataFrame) -> dash_table.DataTable:
+    def render_yearly_analysis(self, data) -> dash_table.DataTable:
         """
         Render the yearly analysis table.
         
         Args:
-            data (pd.DataFrame): Processed data for the table.
+            data (Union[pd.DataFrame, list]): Processed data for the table.
             
         Returns:
             dash_table.DataTable: Rendered table component.
@@ -43,6 +43,10 @@ class TableVisualizer:
         self.logger.info("Rendering yearly analysis table")
         
         try:
+            # Convert list to DataFrame if needed
+            if isinstance(data, list):
+                data = pd.DataFrame(data)
+                
             if not self.validate_data(data, "yearly_analysis"):
                 return self.generate_fallback_table("yearly_analysis")
             
