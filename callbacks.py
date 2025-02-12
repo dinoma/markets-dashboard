@@ -631,10 +631,6 @@ def register_callbacks(app):
             prevent_initial_call=True
         )
         def process_data(ohlc_data, seasonality_data, subplot_data, direction, years_range):
-            # Handle None inputs
-            if ohlc_data is None and seasonality_data is None and subplot_data is None:
-                return None
-            
             # Convert stored data back to DataFrames
             ohlc_df = pd.DataFrame(ohlc_data) if ohlc_data else pd.DataFrame()
             seasonality_dfs = {years: pd.DataFrame(data) for years, data in (seasonality_data or {}).items()}
@@ -748,6 +744,8 @@ def register_callbacks(app):
         )
         def perform_analysis_and_update_layout(processed_data, n_clicks, n_intervals,
                                                start_date, end_date, direction, years_range, stored_market):
+
+
 
             # Get processed data
             ohlc_df = pd.DataFrame(processed_data.get('ohlc', []))
