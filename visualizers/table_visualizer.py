@@ -54,7 +54,7 @@ class TableVisualizer:
         except Exception as e:
             return self._handle_error(e, "yearly_analysis")
 
-    def render_day_trading_stats(self, data: pd.DataFrame) -> dash_table.DataTable:
+    def render_day_trading_stats(self, data: pd.DataFrame) -> list:
         """
         Render the day trading stats table.
         
@@ -62,21 +62,21 @@ class TableVisualizer:
             data (pd.DataFrame): Processed data for the table.
             
         Returns:
-            dash_table.DataTable: Rendered table component.
+            list: Data in Dash DataTable format
         """
         self.logger.info("Rendering day trading stats table")
         
         try:
             if not self.validate_data(data, "day_trading_stats"):
-                return self.generate_fallback_table("day_trading_stats")
+                fallback_table = self.generate_fallback_table("day_trading_stats")
+                return fallback_table.data
             
-            table = dash_table.DataTable(
-                data=data.to_dict("records"),
-                columns=[{"name": col, "id": col} for col in data.columns]
-            )
-            return self.apply_styles(table)
+            # Convert DataFrame to list of dicts for Dash DataTable
+            return data.to_dict("records")
         except Exception as e:
-            return self._handle_error(e, "day_trading_stats")
+            self.logger.error(f"Error rendering day trading stats table: {str(e)}")
+            fallback_table = self.generate_fallback_table("day_trading_stats")
+            return fallback_table.data
 
     def render_correlation_table(self, data: pd.DataFrame) -> tuple:
         """

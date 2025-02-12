@@ -1137,11 +1137,14 @@ def register_callbacks(app):
             stats_df = pd.concat([stats_df, total_row], ignore_index=True)
             stats_1_df = pd.concat([stats_1_df, total_1_row], ignore_index=True)
 
-            # Convert the DataFrame to a dictionary for Dash DataTable
+            # Get table data from visualizer
             day_trading_stats = table_visualizer.render_day_trading_stats(stats_df)
-            day_trading_stats_1 = table_visualizer.render_day_trading_stats(stats_1_df)
+            day_trading_stats_1 = table_visualizer.render_day_trading_stats(stats_1_df) 
             day_trading_stats_weekday = table_visualizer.render_day_trading_stats(stats_weekday_df)
             day_trading_stats_1_weekday = table_visualizer.render_day_trading_stats(stats_1_weekday_df)
+
+            # Get columns dynamically from the first table
+            columns = [{"name": col, "id": col} for col in stats_df.columns]
 
             summary_15_text = (
                 f"15-Year Summary:\n"
