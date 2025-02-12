@@ -574,6 +574,53 @@ def register_callbacks(app):
     # Callback for Opportunity Analysis section
 
     if user_tier == 'premium':
+
+        @app.callback(
+            [Output('ohlc-data-store', 'data'),
+             Output('seasonality-data-store', 'data'),
+             Output('subplot-data-store', 'data')],
+            [Input('perform-analysis-button', 'n_clicks'),
+             Input('interval-auto-load', 'n_intervals')],
+            [State('date-picker-range', 'start_date'),
+             State('date-picker-range', 'end_date'),
+             State('stored-market', 'data'),
+             State('years-checklist', 'value')]
+        )
+        def fetch_all_data(n_clicks, n_intervals, start_date, end_date, stored_market, years_range):
+            if not n_clicks and not n_intervals:
+                return None, None, None
+
+            # Convert dates
+            start_month, start_day = pd.to_datetime(start_date).month, pd.to_datetime(start_date).day
+            end_month, end_day = pd.to_datetime(end_date).month, pd.to_datetime(end_date).day
+
+            # Fetch OHLC data
+            ohlc_fetcher = OHLCFetcher()
+            ohlc_data = ohlc_fetcher.fetch_data({
+                'market': stored_market,
+                'start_date': start_date,
+                'end_date': end_date
+            }).to_dict('records')
+
+            # Fetch seasonality data
+            seasonality_data = {}
+            if user_tier == 'premium':
+                seasonality_fetcher = SeasonalityFetcher()
+                for years in years_range:
+                    seasonality_data[years] = seasonality_fetcher.fetch_data({
+                        'market': format_market_name(stored_market),
+                        'years': years,
+                        'base_year': 2025
+                        # Current year
+                    }).to_dict('records')
+
+                    # Fetch subplot data
+            subplot_data = {}
+            subplot_fetcher = SubplotFetcher()
+            # Add your subplot data fetching logic here
+
+            return ohlc_data, seasonality_data, subplot_data
+
         @app.callback(
             [
                 Output('yearly-analysis-table', 'data'),
@@ -632,10 +679,13 @@ def register_callbacks(app):
                 Output('pdh-pdl-pdhl-open-low-vs-high-scatter', 'figure'),
                 Output('pdh-pdl-pdhl-open-low-vs-close-scatter', 'figure'),
                 Output('pdh-pdl-pdhl-low-vs-prev-low-dist', 'figure'),
-                Output('pdh-pdl-pdhl-high-vs-prev-high-dist', 'figure')
-            ],
-            [Input('perform-analysis-button', 'n_clicks'),
-             Input('interval-auto-load', 'n_intervals')],
+                Output('pdh-pdl-pdhl-high-vs-prev-high-dist', 'figure')],
+            [Input('ohlc-data-store', 'data'),
+             Input('seasonality-data-store', 'data'),
+             Input('subplot-data-store', 'data'),
+             Input('perform-analysis-button', 'n_clicks'),
+             Input('interval-auto-load', 'n_intervals'),
+             ],
             [State('date-picker-range', 'start_date'),
              State('date-picker-range', 'end_date'),
              State('direction-dropdown', 'value'),
@@ -643,8 +693,15 @@ def register_callbacks(app):
              State('stored-market', 'data')],
             prevent_initial_call=True
         )
-        def perform_analysis_and_update_layout(n_clicks, n_intervals, start_date, end_date, direction, years_range,
-                                               stored_market):
+        def perform_analysis_and_update_layout(ohlc_data, seasonality_data, subplot_data, n_clicks, n_intervals,
+                                               start_date, end_date, direction, years_range, stored_market):
+
+            # Convert stored data back to DataFrames
+            ohlc_df = pd.DataFrame(ohlc_data) if ohlc_data else pd.DataFrame()
+            seasonality_dfs = {years: pd.DataFrame(data) for years, data in
+                               seasonality_data.items()} if seasonality_data else {}
+            subplot_dfs = {key: pd.DataFrame(data) for key, data in subplot_data.items()} if subplot_data else {}
+
             start_month, start_day = pd.to_datetime(start_date).month, pd.to_datetime(start_date).day
             end_month, end_day = pd.to_datetime(end_date).month, pd.to_datetime(end_date).day
 
