@@ -622,6 +622,56 @@ def register_callbacks(app):
             return ohlc_data, seasonality_data, subplot_data
 
         @app.callback(
+            Output('processed-data-store', 'data'),
+            [Input('ohlc-data-store', 'data'),
+             Input('seasonality-data-store', 'data'),
+             Input('subplot-data-store', 'data')],
+            [State('direction-dropdown', 'value'),
+             State('years-checklist', 'value')]
+        )
+        def process_data(ohlc_data, seasonality_data, subplot_data, direction, years_range):
+            # Convert stored data back to DataFrames
+            ohlc_df = pd.DataFrame(ohlc_data) if ohlc_data else pd.DataFrame()
+            seasonality_dfs = {years: pd.DataFrame(data) for years, data in seasonality_data.items()} if seasonality_data else {}
+            subplot_dfs = {key: pd.DataFrame(data) for key, data in subplot_data.items()} if subplot_data else {}
+
+            # Initialize data processor
+            processor = DataProcessor()
+        
+            # Process OHLC data
+            if not ohlc_df.empty:
+                ohlc_df = processor.validate_structure(ohlc_df)
+                ohlc_df = processor.clean_data(ohlc_df)
+                ohlc_df = processor.transform_data(ohlc_df)
+        
+            # Process seasonality data
+            processed_seasonality = {}
+            for years, df in seasonality_dfs.items():
+                if not df.empty:
+                    df = processor.validate_structure(df)
+                    df = processor.clean_data(df)
+                    df = processor.transform_data(df)
+                    processed_seasonality[years] = df.to_dict('records')
+        
+            # Process subplot data
+            processed_subplots = {}
+            for key, df in subplot_dfs.items():
+                if not df.empty:
+                    df = processor.validate_structure(df)
+                    df = processor.clean_data(df)
+                    df = processor.transform_data(df)
+                    processed_subplots[key] = df.to_dict('records')
+        
+            # Return processed data
+            return {
+                'ohlc': ohlc_df.to_dict('records'),
+                'seasonality': processed_seasonality,
+                'subplots': processed_subplots,
+                'direction': direction,
+                'years_range': years_range
+            }
+
+        @app.callback(
             [
                 Output('yearly-analysis-table', 'data'),
                 Output('15-year-summary', 'children'),
@@ -680,9 +730,7 @@ def register_callbacks(app):
                 Output('pdh-pdl-pdhl-open-low-vs-close-scatter', 'figure'),
                 Output('pdh-pdl-pdhl-low-vs-prev-low-dist', 'figure'),
                 Output('pdh-pdl-pdhl-high-vs-prev-high-dist', 'figure')],
-            [Input('ohlc-data-store', 'data'),
-             Input('seasonality-data-store', 'data'),
-             Input('subplot-data-store', 'data'),
+            [Input('processed-data-store', 'data'),
              Input('perform-analysis-button', 'n_clicks'),
              Input('interval-auto-load', 'n_intervals'),
              ],

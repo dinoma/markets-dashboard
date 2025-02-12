@@ -893,6 +893,7 @@ def create_base_layout(is_premium=False):
         dcc.Store(id='ohlc-data-store'),
         dcc.Store(id='seasonality-data-store'),
         dcc.Store(id='subplot-data-store'),
+        dcc.Store(id='processed-data-store'),
         
         html.Div(
             children=[
