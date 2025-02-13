@@ -78,8 +78,48 @@ class DistributionChartVisualizer:
         """
         if not self._validate_data(data):
             return self._create_empty_chart()
-        # Placeholder for implementation
-        return go.Figure()
+            
+        # Convert data to DataFrame if it's a list
+        if isinstance(data, list):
+            data = pd.DataFrame(data)
+            
+        # Calculate percentiles
+        percentiles = calculate_percentiles(data, 'percent_change')
+        
+        # Create figure
+        fig = go.Figure()
+        
+        # Add histogram trace
+        fig.add_trace(go.Histogram(
+            x=data['percent_change'],
+            name='Returns',
+            marker_color='CornflowerBlue',
+            opacity=0.75,
+            nbinsx=50,
+            histnorm='percent'
+        ))
+        
+        # Add percentile lines
+        for pct, value in percentiles.items():
+            fig.add_vline(
+                x=value,
+                line_dash="dash",
+                line_color="white",
+                annotation_text=f"{pct}%",
+                annotation_position="top right",
+                annotation_font_size=10
+            )
+            
+        # Update layout
+        fig.update_layout(
+            title=f"{years}-Year Return Distribution",
+            xaxis_title="Return (%)",
+            yaxis_title="Frequency (%)",
+            showlegend=False,
+            **self.default_styles
+        )
+        
+        return fig
 
     def render_stop_loss_distribution(self, data, years=15):
         """Render a stop-loss distribution chart.
