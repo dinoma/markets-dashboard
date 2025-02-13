@@ -21,8 +21,26 @@ from data_fetchers import (
 )
 from dotenv import load_dotenv
 import os
+from input_handler import InputHandler
 from callback_helpers import *
 from app.config import COLORS, market_tickers, TRACE_CONFIG
+
+# Initialize InputHandler
+input_handler = InputHandler()
+
+# Register inputs with validation rules
+input_handler.register_input(
+    'market',
+    {'type': str, 'required': True},
+    {'type': 'Invalid market type', 'required': 'Market is required'}
+)
+
+input_handler.register_input(
+    'year', 
+    {'type': int, 'required': True, 'min': 1994, 'max': 2025},
+    {'type': 'Year must be a number', 'required': 'Year is required', 
+     'min': 'Year must be >= 1994', 'max': 'Year must be <= 2025'}
+)
 import re
 
 
@@ -224,6 +242,16 @@ def register_callbacks(app):
         prevent_initial_call=False
     )
     def update_graph(active_subplots, selected_years, ohlc_visibility, stored_market, current_year, relayout_data, hover_data, click_data):
+        # Validate inputs
+        if not input_handler.validate_input('market', stored_market):
+            market_errors = input_handler.get_input_errors('market')
+            print(f"Market validation failed: {market_errors}")
+            return go.Figure()
+            
+        if not input_handler.validate_input('year', current_year):
+            year_errors = input_handler.get_input_errors('year')
+            print(f"Year validation failed: {year_errors}")
+            return go.Figure()
         # Phase 1: Debug instrumentation
         print(f"\n=== GRAPH UPDATE START ===\nActive subplots: {active_subplots}")
         assert isinstance(active_subplots, list), "Invalid active_subplots type"
@@ -517,6 +545,20 @@ def register_callbacks(app):
         [State('current-year', 'data')]
     )
     def update_year(n_clicks_main_prev, n_clicks_main_next, n_clicks_right_panel_prev, n_clicks_right_panel_next, current_year):
+        # Validate year before updating
+        new_year = current_year
+        if ctx.triggered:
+            button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+            if 'prev-year-button' in button_id:
+                new_year = max(1994, current_year - 1)
+            elif 'next-year-button' in button_id:
+                new_year = min(2025, current_year + 1)
+                
+            if not input_handler.validate_input('year', new_year):
+                print(f"Invalid year selection: {new_year}")
+                return current_year
+                
+        return new_year
         if ctx.triggered:
             button_id = ctx.triggered[0]['prop_id'].split('.')[0]
             if 'prev-year-button-main' in button_id or 'prev-year-button-right-panel' in button_id:
@@ -528,7 +570,7 @@ def register_callbacks(app):
     # Combined callback for market updates
     @app.callback(
         [Output('stored-market', 'data'),
-         Output('market-dropdown', 'value')],  # Add this Output to update the dropdown's value
+         Output('market-dropdown', 'value')],
         [Input('market-dropdown', 'value'),
          Input('prev-market-button-main', 'n_clicks'),
          Input('next-market-button-main', 'n_clicks'),
@@ -539,6 +581,11 @@ def register_callbacks(app):
     )
     def update_stored_market(selected_market, n_clicks_main_prev, n_clicks_main_next,
                              n_clicks_right_panel_prev, n_clicks_right_panel_next, current_market):
+        # Validate new market selection
+        if selected_market and selected_market != current_market:
+            if not input_handler.validate_input('market', selected_market):
+                print(f"Invalid market selection: {selected_market}")
+                return current_market, current_market
 
         # Determine which input triggered the callback
         triggered_input = ctx.triggered[0]['prop_id'].split('.')[0]
