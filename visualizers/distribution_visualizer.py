@@ -496,7 +496,7 @@ class DistributionChartVisualizer:
         """Render an Open-High distribution chart.
         
         Args:
-            data (pd.DataFrame): Data to render
+            data (pd.DataFrame or dict): Data to render
             day_type (str): Type of day (PD-H, PD-L, PD-HL, D-UP, D-DOWN)
             title (str): Chart title
             
@@ -506,20 +506,40 @@ class DistributionChartVisualizer:
         if not self._validate_data(data):
             return self._create_empty_chart("No data available")
             
-        # Convert data to DataFrame if it's a list
-        if isinstance(data, list):
-            data = pd.DataFrame(data)
+        # Convert data to DataFrame if it's a list or dict
+        if isinstance(data, (list, dict)):
+            try:
+                data = pd.DataFrame(data)
+                self.logger.info(f"Converted data to DataFrame with shape: {data.shape}")
+            except Exception as e:
+                self.logger.error(f"Failed to convert data to DataFrame: {e}")
+                return self._create_empty_chart("Data conversion failed")
+                
+        # Log available columns for debugging
+        self.logger.info(f"Available columns: {data.columns.tolist()}")
+        
+        # Check for required column
+        if 'open_high' not in data.columns:
+            self.logger.warning(f"'open_high' column not found in data")
+            return self._create_empty_chart("Missing 'open_high' data")
+            
+        # Filter out NaN values
+        filtered_data = data[data['open_high'].notna()]
+        if filtered_data.empty:
+            self.logger.warning("All 'open_high' values are NaN")
+            return self._create_empty_chart("No valid 'open_high' data")
             
         # Calculate percentiles
-        percentiles = self._calculate_percentiles(data, 'open_high', day_type, 'open_high')
+        percentiles = self._calculate_percentiles(filtered_data, 'open_high', day_type, 'open_high')
         
         # Create figure
         fig = go.Figure()
         
         # Add histogram trace
         fig.add_trace(go.Histogram(
-            x=data['open_high'],
-            opacity=0.75
+            x=filtered_data['open_high'],
+            opacity=0.75,
+            marker_color='#4CAF50'  # Consistent green color
         ))
         
         # Add percentile lines
