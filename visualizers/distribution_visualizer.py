@@ -518,11 +518,17 @@ class DistributionChartVisualizer:
         # Log available columns for debugging
         self.logger.info(f"Available columns: {data.columns.tolist()}")
         
-        # Check for required column
-        col = 'open_high_pct_change'
-        if col not in data.columns:
-            self.logger.warning(f"'{col}' column not found in data")
-            return self._create_empty_chart(f"Missing '{col}' data")
+        # Check for required column - try multiple possible names
+        col = None
+        possible_cols = ['open_high_pct_change', 'open_high', 'open_high_percent_change', 'open_high_change']
+        for possible_col in possible_cols:
+            if possible_col in data.columns:
+                col = possible_col
+                break
+                
+        if col is None:
+            self.logger.warning(f"None of {possible_cols} columns found in data")
+            return self._create_empty_chart(f"Missing required column. Available: {data.columns.tolist()}")
             
         # Filter out NaN values
         filtered_data = data[data[col].notna()]
