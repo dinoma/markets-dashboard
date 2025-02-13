@@ -3,6 +3,7 @@
 from datetime import datetime
 from dash import Input, Output, State, ctx, callback_context, MATCH, ALL
 from visualizers.table_visualizer import TableVisualizer
+from visualizers.distribution_visualizer import DistributionChartVisualizer
 from queues import QueueManager, FetchingQueue, ProcessingQueue, AnalysisQueue, VisualizationQueue
 from data_contracts import FetchingContract, ProcessingContract, AnalysisContract, VisualizationContract
 from navigation_service import NavigationService
@@ -759,6 +760,9 @@ def register_callbacks(app):
             prevent_initial_call=True
         )
         def perform_analysis_and_update_layout(processed_data, n_clicks, n_intervals,
+            # Initialize visualizers
+            table_visualizer = TableVisualizer()
+            distribution_visualizer = DistributionChartVisualizer()
                                                start_date, end_date, direction, years_range, stored_market):
 
             # Handle None processed data
@@ -1103,7 +1107,7 @@ def register_callbacks(app):
             pdh_pdl_pdhl_high_vs_prev_high_dist = analysis_results['pdh_pdl_pdhl_high_vs_prev_high_dist']
 
             # Distribution Charts for 15 and 30 years
-            distribution_chart_15 = create_distribution_chart(yearly_data[:15], "15-Year Returns")
+            distribution_chart_15 = distribution_visualizer.render_return_distribution(yearly_data[:15])
             optimal_distribution_chart_15 = create_distribution_chart(optimal_trades_results_15y,
                                                                       "15-Year Stop-Loss and Exit Returns")
             distribution_chart_30 = create_distribution_chart(yearly_data[:30], "30-Year Returns ")
