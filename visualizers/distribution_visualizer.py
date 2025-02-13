@@ -177,13 +177,14 @@ class DistributionChartVisualizer:
         # Placeholder for implementation
         return go.Figure()
 
-    def _calculate_percentiles(self, data, column, day_type):
-        """Calculate percentiles based on day type.
+    def _calculate_percentiles(self, data, column, day_type, chart_type):
+        """Calculate percentiles based on day type and chart type.
         
         Args:
             data (pd.DataFrame): Input data
             column (str): Column name to calculate percentiles on
             day_type (str): Type of day (PD-H, PD-L, PD-HL, D-UP, D-DOWN)
+            chart_type (str): Type of chart (open_low, open_high, open_close, low_prev_low, high_prev_high)
             
         Returns:
             dict: Percentile values keyed by percentile
@@ -191,24 +192,53 @@ class DistributionChartVisualizer:
         if not self._validate_data(data) or column not in data.columns:
             return {}
             
-        if day_type in ['PD-H', 'D-UP']:
-            return {
-                '70': np.percentile(data[column], 70),
-                '95': np.percentile(data[column], 95)
+        # Define rules for each combination
+        rules = {
+            'D-UP': {
+                'open_low': ['-70', '-95'],
+                'open_high': ['70', '95'],
+                'open_close': ['70', '95'],
+                'low_prev_low': ['-70', '-95', '70', '95'],
+                'high_prev_high': ['-70', '-95', '70', '95']
+            },
+            'D-DOWN': {
+                'open_low': ['-70', '-95'],
+                'open_high': ['70', '95'],
+                'open_close': ['-70', '-95'],
+                'low_prev_low': ['-70', '-95', '70', '95'],
+                'high_prev_high': ['-70', '-95', '70', '95']
+            },
+            'PD-H': {
+                'open_low': ['-70', '-95'],
+                'open_high': ['70', '95'],
+                'open_close': ['-70', '-95', '70', '95'],
+                'high_prev_high': ['70', '95']
+            },
+            'PD-L': {
+                'open_low': ['-70', '-95'],
+                'open_high': ['70', '95'],
+                'open_close': ['-70', '-95', '70', '95'],
+                'low_prev_low': ['-70', '-95']
+            },
+            'PD-HL': {
+                'open_low': ['-70', '-95'],
+                'open_high': ['70', '95'],
+                'open_close': ['-70', '-95', '70', '95'],
+                'low_prev_low': ['-70', '-95'],
+                'high_prev_high': ['70', '95']
             }
-        elif day_type in ['PD-L', 'D-DOWN']:
-            return {
-                '-70': np.percentile(data[column], 30),  # Equivalent to -70th percentile
-                '-95': np.percentile(data[column], 5)   # Equivalent to -95th percentile
-            }
-        elif day_type == 'PD-HL':
-            return {
-                '70': np.percentile(data[column], 70),
-                '95': np.percentile(data[column], 95),
-                '-70': np.percentile(data[column], 30),
-                '-95': np.percentile(data[column], 5)
-            }
-        return {}
+        }
+        
+        # Get the percentiles to calculate
+        percentiles_to_calculate = rules.get(day_type, {}).get(chart_type, [])
+        
+        # Calculate the percentiles
+        result = {}
+        for pct in percentiles_to_calculate:
+            pct_value = float(pct)
+            result[pct] = np.percentile(data[column], abs(pct_value))
+            
+        return result
 
     def _add_percentile_lines(self, fig, percentiles, day_type):
         """Add percentile lines to the figure based on day type.
