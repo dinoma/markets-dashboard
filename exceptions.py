@@ -69,6 +69,40 @@ class DataValidationError(DataProcessingError):
             return f"{self.message}: Invalid data - {self.invalid_data}"
         return self.message
 
+class InputValidationError(Exception):
+    """Exception raised when input validation fails."""
+    def __init__(self, message="Input validation failed", field=None, value=None):
+        super().__init__(message)
+        self.field = field
+        self.value = value
+        self.timestamp = datetime.now().isoformat()
+        
+    def get_metadata(self):
+        """Return error metadata as a dictionary"""
+        return {
+            'timestamp': self.timestamp,
+            'field': self.field,
+            'value': self.value,
+            'message': str(self)
+        }
+
+class InputFormatError(InputValidationError):
+    """Exception raised when input format is invalid."""
+    def __init__(self, message="Invalid input format", field=None, value=None):
+        super().__init__(message, field, value)
+
+class InputRangeError(InputValidationError):
+    """Exception raised when input is out of valid range."""
+    def __init__(self, message="Input out of valid range", field=None, value=None, min_value=None, max_value=None):
+        super().__init__(message, field, value)
+        self.min_value = min_value
+        self.max_value = max_value
+        
+    def __str__(self):
+        if self.min_value is not None and self.max_value is not None:
+            return f"{self.message}: {self.field} must be between {self.min_value} and {self.max_value}"
+        return self.message
+
 class AnalysisError(Exception):
     """Base exception class for analysis related errors."""
     def __init__(self, message="Analysis failed", details=None, component=None, context=None):
