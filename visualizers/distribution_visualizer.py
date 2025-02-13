@@ -144,61 +144,20 @@ class DistributionChartVisualizer:
         # Add histogram trace
         fig.add_trace(go.Histogram(
             x=data[return_column],
-            name='Returns',
-            marker_color='#1f77b4',  # Consistent blue color
-            opacity=0.8,
-            nbinsx=50,
-            histnorm='percent',
-            marker_line_width=0
+            marker=dict(color='#4CAF50'),
+            opacity=0.75
         ))
         
-        # Add percentile lines
-        for pct, value in percentiles.items():
-            fig.add_vline(
-                x=value,
-                line_dash="dot",
-                line_color="#ff7f0e",  # Consistent orange color
-                line_width=1.5,
-                annotation_text=f"{pct}%",
-                annotation_position="top right",
-                annotation_font_size=12,
-                annotation_font_color="#ff7f0e",
-                annotation_bgcolor="rgba(0,0,0,0.7)"
-            )
-            
         # Update layout
         fig.update_layout(
-            title={
-                'text': f"{years}-Year Return Distribution",
-                'x': 0.5,
-                'y': 0.95,
-                'xanchor': 'center',
-                'yanchor': 'top',
-                'font': {
-                    'size': 14,
-                    'color': 'white'
-                }
-            },
+            title=f"{years}-Year Return Distribution",
+            title_font_size=12,
             xaxis_title="Return (%)",
-            yaxis_title="Frequency (%)",
-            showlegend=False,
-            margin=dict(l=50, r=50, t=80, b=50),
-            **self.default_styles
-        )
-        
-        # Update axis styling
-        fig.update_xaxes(
-            showgrid=True,
-            gridcolor='rgba(255,255,255,0.1)',
-            zeroline=False,
-            title_font=dict(size=12)
-        )
-        
-        fig.update_yaxes(
-            showgrid=True,
-            gridcolor='rgba(255,255,255,0.1)',
-            zeroline=False,
-            title_font=dict(size=12)
+            yaxis_title="Frequency",
+            plot_bgcolor='#1e1e1e',
+            paper_bgcolor='#1e1e1e',
+            font=dict(color='white', family="'Press Start 2P', monospace"),
+            bargap=0.1
         )
         
         return fig
