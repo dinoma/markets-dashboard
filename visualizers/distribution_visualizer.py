@@ -145,30 +145,60 @@ class DistributionChartVisualizer:
         fig.add_trace(go.Histogram(
             x=data[return_column],
             name='Returns',
-            marker_color='CornflowerBlue',
-            opacity=0.75,
+            marker_color='#1f77b4',  # Consistent blue color
+            opacity=0.8,
             nbinsx=50,
-            histnorm='percent'
+            histnorm='percent',
+            marker_line_width=0
         ))
         
         # Add percentile lines
         for pct, value in percentiles.items():
             fig.add_vline(
                 x=value,
-                line_dash="dash",
-                line_color="white",
+                line_dash="dot",
+                line_color="#ff7f0e",  # Consistent orange color
+                line_width=1.5,
                 annotation_text=f"{pct}%",
                 annotation_position="top right",
-                annotation_font_size=10
+                annotation_font_size=12,
+                annotation_font_color="#ff7f0e",
+                annotation_bgcolor="rgba(0,0,0,0.7)"
             )
             
         # Update layout
         fig.update_layout(
-            title=f"{years}-Year Return Distribution",
+            title={
+                'text': f"{years}-Year Return Distribution",
+                'x': 0.5,
+                'y': 0.95,
+                'xanchor': 'center',
+                'yanchor': 'top',
+                'font': {
+                    'size': 14,
+                    'color': 'white'
+                }
+            },
             xaxis_title="Return (%)",
             yaxis_title="Frequency (%)",
             showlegend=False,
+            margin=dict(l=50, r=50, t=80, b=50),
             **self.default_styles
+        )
+        
+        # Update axis styling
+        fig.update_xaxes(
+            showgrid=True,
+            gridcolor='rgba(255,255,255,0.1)',
+            zeroline=False,
+            title_font=dict(size=12)
+        )
+        
+        fig.update_yaxes(
+            showgrid=True,
+            gridcolor='rgba(255,255,255,0.1)',
+            zeroline=False,
+            title_font=dict(size=12)
         )
         
         return fig
