@@ -21,7 +21,14 @@ class ErrorBoundary(html.Div):
         self.error_info = {
             'error': error,
             'info': info,
-            'timestamp': datetime.now().isoformat()
+            'timestamp': datetime.now().isoformat(),
+            'component': self.__class__.__name__
         }
         log_error(self.error_info)
         self.children = self.fallback.render(self.error_info)
+        
+    def reset(self):
+        """Reset the error boundary to its initial state"""
+        self.has_error = False
+        self.error_info = None
+        self.children = self.original_children

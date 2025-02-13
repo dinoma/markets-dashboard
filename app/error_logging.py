@@ -10,12 +10,14 @@ def setup_logging():
     )
 
 def log_error(error_info: Dict[str, Any]):
-    """Log error information"""
+    """Log error information with additional context"""
     logger = logging.getLogger('error_boundary')
     logger.error(
-        "Error occurred: %s\nComponent stack: %s",
-        error_info.get('error'),
-        error_info.get('info')
+        "Error in component %s: %s\nStack trace: %s\nTimestamp: %s",
+        error_info.get('component', 'Unknown'),
+        error_info.get('error', 'Unknown error'),
+        error_info.get('info', {}).get('componentStack', 'No stack'),
+        error_info.get('timestamp', 'Unknown time')
     )
 
 def report_error(error_info: Dict[str, Any]):
