@@ -1227,7 +1227,7 @@ def register_callbacks(app):
                 day_trading_stats_weekday,  # Day trading stats
                 day_trading_stats_1_weekday,
                 # D-UP distribution and scatter plots
-                dup_distributions.get('open_high', {}),
+                distribution_visualizer.render_open_high_distribution(dup_distributions, 'D-UP', "D-UP Open-High Distribution"),
                 dup_distributions.get('open_low', {}),
                 dup_distributions.get('open_close', {}),
                 dup_scatters.get('scatter_1', {}),  # HERE SCATTERS
