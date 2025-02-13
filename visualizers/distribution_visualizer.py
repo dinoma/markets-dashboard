@@ -105,15 +105,26 @@ class DistributionChartVisualizer:
         if isinstance(data, list):
             data = pd.DataFrame(data)
             
+        # Determine the correct column name for returns
+        return_column = None
+        for col in ['percent_change', 'returns', 'change', 'pct_change']:
+            if col in data.columns:
+                return_column = col
+                break
+                
+        if return_column is None:
+            self.logger.warning("No valid return column found in data")
+            return self._create_empty_chart("No return data available")
+            
         # Calculate percentiles
-        percentiles = self.calculate_percentiles(data, 'percent_change')
+        percentiles = self.calculate_percentiles(data, return_column)
         
         # Create figure
         fig = go.Figure()
         
         # Add histogram trace
         fig.add_trace(go.Histogram(
-            x=data['percent_change'],
+            x=data[return_column],
             name='Returns',
             marker_color='CornflowerBlue',
             opacity=0.75,
