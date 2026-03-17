@@ -1,13 +1,43 @@
-# Ignore environment file
+# Environment
 .env
+.aider*
 
-# Ignore Python cache and temporary files
+# Python
 __pycache__/
 *.pyc
+*.pyo
+*.egg-info/
+venv/
+.venv/
 
-# Ignore log files
+# Database files
+*.db
+*.sql
+*.dump
+*.sqbpro
+*.sqlite
+*.sqlite3
+
+# Profiling
+*.prof
+
+# Certificates
+*.crt
+*.pem
+*.key
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+
+# Logs
 *.log
 
-#Ignore database files
-*.db
-.aider*
+# Data files
+*.csv
+
+# Heroku
+heroku info

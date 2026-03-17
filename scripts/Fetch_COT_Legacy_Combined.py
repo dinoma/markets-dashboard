@@ -98,7 +98,7 @@ def filter_and_save_by_market(df, market_codes):
 
 def main():
     base_url = "https://publicreporting.cftc.gov/resource/jun7-fc8e.json"
-    app_token = "DpRffv2Bz276EwYjvO0EutvuP"
+    app_token = os.environ.get("CFTC_TOKEN")
     headers = {"X-App-Token": app_token}
 
     # Fetch all data from the API
