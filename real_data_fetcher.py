@@ -126,7 +126,8 @@ class RealDataFetcher(IDataFetcher):
             table_name = params.get('table_name')
             if not table_name:
                 raise ValueError("Table name not specified in params")
-            
+            BaseDataFetcher.validate_table_name(table_name)
+
             query = f"SELECT * FROM {table_name}"
             df = BaseDataFetcher.fetch_data(query)
             return df.to_dict('records')

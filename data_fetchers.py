@@ -107,7 +107,8 @@ class BaseDataFetcher:
         Returns:
             pd.DataFrame: DataFrame containing the OHLC data.
         """
-        table_name = f"{market.lower().replace(' ', '_')}_ohlc"
+        table_name = TableNameFactory.get_ohlc_table(market)
+        BaseDataFetcher.validate_table_name(table_name)
         print(f"Fetching OHLC from table: {table_name} for date range: {start_date} to {end_date}")
 
         query = f"SELECT * FROM {table_name} WHERE date BETWEEN :start_date AND :end_date"
@@ -318,7 +319,8 @@ class OHLCDataFetcher(BaseDataFetcher):
         Returns:
             pd.DataFrame: DataFrame containing the OHLC data.
         """
-        table_name = f"{market.lower().replace(' ', '_')}_ohlc"
+        table_name = TableNameFactory.get_ohlc_table(market)
+        BaseDataFetcher.validate_table_name(table_name)
         print(f"Fetching OHLC from table: {table_name} for date range: {start_date} to {end_date}")
 
         query = f"SELECT * FROM {table_name} WHERE date BETWEEN :start_date AND :end_date"
@@ -504,7 +506,8 @@ class ReportDataFetcher(BaseDataFetcher):
         Generic fetch method that uses configuration to determine query parameters.
         """
         table_name = TableNameFactory.get_cot_table(market, report_type, table_suffix)
-        
+        BaseDataFetcher.validate_table_name(table_name)
+
         query = f"""
         SELECT {self.config['columns']}
         FROM {table_name}
@@ -541,6 +544,7 @@ class CorrelationDataFetcher(BaseDataFetcher):
         Returns:
             pd.DataFrame: DataFrame containing the correlation data.
         """
+        BaseDataFetcher.validate_table_name(table_name)
         query = f"SELECT * FROM {table_name}"
         df = CorrelationDataFetcher.fetch_data(query)
 

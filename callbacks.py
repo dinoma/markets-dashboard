@@ -22,7 +22,15 @@ from data_fetchers import (
 from dotenv import load_dotenv
 import os
 from input_handler import InputHandler
-from callback_helpers import *
+from callback_helpers import (
+    AnnotationManager,
+    add_trace,
+    calculate_risk_metrics,
+    create_cumulative_return_charts,
+    get_market_by_index,
+    perform_analysis,
+    update_risk_metrics_summary,
+)
 from app.config import COLORS, market_tickers, TRACE_CONFIG
 
 # Initialize InputHandler
@@ -559,13 +567,6 @@ def register_callbacks(app):
                 return current_year
 
         return new_year
-        if ctx.triggered:
-            button_id = ctx.triggered[0]['prop_id'].split('.')[0]
-            if 'prev-year-button-main' in button_id or 'prev-year-button-right-panel' in button_id:
-                return max(1994, current_year - 1)
-            elif 'next-year-button-main' in button_id or 'next-year-button-right-panel' in button_id:
-                return min(datetime.now().year, current_year + 1)
-        return current_year
 
     # Combined callback for market updates
     @app.callback(
