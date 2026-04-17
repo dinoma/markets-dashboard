@@ -40,8 +40,8 @@ class DataProcessor:
             cleaned_data = self.clean_data(raw_data)
             transformed_data = self.transform_data(cleaned_data)
             return transformed_data
-        except Exception as e:
-            raise DataProcessingError(f"Data processing failed: {str(e)}")
+        except (DataValidationError, DataProcessingError, ValueError, KeyError, AttributeError) as e:
+            raise DataProcessingError(f"Data processing failed: {str(e)}") from e
 
     def validate_structure(self, data: pd.DataFrame) -> pd.DataFrame:
         """
@@ -152,8 +152,8 @@ class OHLCProcessor:
             self.dt_breaks = [d for d in self.dt_all.strftime("%Y-%m-%d").tolist() 
                             if d not in self.dt_obs]
             return self
-        except Exception as e:
-            raise DataProcessingError(f"Error calculating date ranges: {str(e)}")
+        except (ValueError, TypeError, pd.errors.ParserError) as e:
+            raise DataProcessingError(f"Error calculating date ranges: {str(e)}") from e
     
     def get_rangebreaks(self):
         """Get missing dates for plotly axis rangebreaks"""

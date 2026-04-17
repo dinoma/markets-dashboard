@@ -1,4 +1,5 @@
 # data_fetchers.py
+import logging
 from data_processor import DataProcessingError
 import pandas as pd
 from app.config import db_path_str
@@ -7,9 +8,12 @@ from datetime import timedelta
 from dateutil import parser
 from functools import lru_cache
 from sqlalchemy import create_engine, text
+from sqlalchemy import exc as sa_exc
 import os
 from urllib.parse import urlparse
 import re
+
+logger = logging.getLogger(__name__)
 
 class TableType(Enum):
     OHLC = "ohlc"
@@ -109,7 +113,7 @@ class BaseDataFetcher:
         """
         table_name = TableNameFactory.get_ohlc_table(market)
         BaseDataFetcher.validate_table_name(table_name)
-        print(f"Fetching OHLC from table: {table_name} for date range: {start_date} to {end_date}")
+        logger.debug(f"Fetching OHLC from table: {table_name} for date range: {start_date} to {end_date}")
 
         query = f"SELECT * FROM {table_name} WHERE date BETWEEN :start_date AND :end_date"
         params = {'start_date': f'{start_date} 00:00:00', 'end_date': f'{end_date} 23:59:59'}
@@ -147,7 +151,7 @@ class BaseDataFetcher:
                 if params:
                     stmt = stmt.bindparams(*[bindparam(key, value) for key, value in params.items()])
                 df = pd.read_sql(stmt, connection)
-            except Exception as e:
+            except sa_exc.SQLAlchemyError as e:
                 raise RuntimeError(f"Database error: {str(e)}") from e
 
         # Apply common processing pipeline
@@ -206,8 +210,8 @@ class BaseDataFetcher:
                     )
 
             return processed_df
-        except Exception as e:
-            raise DataProcessingError(f"Error in common processing: {str(e)}")
+        except (ValueError, TypeError, AttributeError) as e:
+            raise DataProcessingError(f"Error in common processing: {str(e)}") from e
 
     @staticmethod
     def validate_table_name(table_name):
@@ -283,15 +287,15 @@ class OHLCDataFetcher(BaseDataFetcher):
     @staticmethod
     def fetch_ohlc_data(market, year):
         table_name = TableNameFactory.get_ohlc_table(market)
-        print(f"Fetching OHLC from table: {table_name} for year: {year}")
-
         BaseDataFetcher.validate_table_name(table_name)
+        logger.debug(f"Fetching OHLC from table: {table_name} for year: {year}")
+
         query = "SELECT * FROM {} WHERE Date BETWEEN :start_date AND :end_date".format(table_name)
         params = {
             'start_date': f'{year}-01-01 00:00:00',
             'end_date': f'{year}-12-31 23:59:59'
         }
-        print(f"Running query: {query} with params: {params}")
+        logger.debug(f"Running query: {query} with params: {params}")
 
         df = OHLCDataFetcher.fetch_data(query, params)
 
@@ -321,14 +325,12 @@ class OHLCDataFetcher(BaseDataFetcher):
         """
         table_name = TableNameFactory.get_ohlc_table(market)
         BaseDataFetcher.validate_table_name(table_name)
-        print(f"Fetching OHLC from table: {table_name} for date range: {start_date} to {end_date}")
+        logger.debug(f"Fetching OHLC from table: {table_name} for date range: {start_date} to {end_date}")
 
-        query = f"SELECT * FROM {table_name} WHERE date BETWEEN :start_date AND :end_date"
+        query = "SELECT * FROM {} WHERE date BETWEEN :start_date AND :end_date".format(table_name)
         params = {'start_date': f'{start_date} 00:00:00', 'end_date': f'{end_date} 23:59:59'}
 
-        df = OHLCDataFetcher.fetch_data(query, params)
-
-        return df
+        return OHLCDataFetcher.fetch_data(query, params)
 
 
 class ReportDataFetcher(BaseDataFetcher):
@@ -521,7 +523,7 @@ class ReportDataFetcher(BaseDataFetcher):
             if 'report_date_as_yyyy_mm_dd' in df.columns:
                 df['date'] = df['report_date_as_yyyy_mm_dd']
             else:
-                print("Warning: 'report_date_as_yyyy_mm_dd' column missing; 'date' column not created.")
+                logger.warning("'report_date_as_yyyy_mm_dd' column missing; 'date' column not created")
 
             # Additional processing specific to ReportDataFetcher can be added here if needed
 
@@ -545,12 +547,12 @@ class CorrelationDataFetcher(BaseDataFetcher):
             pd.DataFrame: DataFrame containing the correlation data.
         """
         BaseDataFetcher.validate_table_name(table_name)
-        query = f"SELECT * FROM {table_name}"
+        query = "SELECT * FROM {}".format(table_name)
         df = CorrelationDataFetcher.fetch_data(query)
 
         if df.empty:
-            print(f"No data found in {table_name}")
+            logger.warning(f"No data found in {table_name}")
         else:
-            print(f"Fetched correlation data from {table_name}: {df.head()}")
+            logger.debug(f"Fetched correlation data from {table_name}: shape={df.shape}")
 
         return df

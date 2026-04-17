@@ -1,3 +1,4 @@
+import logging
 from typing import Dict, Any, Optional
 from pydantic import BaseModel, field_validator, ValidationError, ConfigDict
 from datetime import datetime
@@ -5,6 +6,8 @@ import pandas as pd
 import numpy as np
 import json
 from pydantic_core import core_schema
+
+logger = logging.getLogger(__name__)
 
 class FetchingContract(BaseModel):
     """Standardized contract for data fetching stage with enhanced debugging"""
@@ -23,33 +26,23 @@ class FetchingContract(BaseModel):
     metadata: Dict[str, Any] = {}
     
     def __init__(self, **data):
-        print("\n=== FetchingContract Initialization ===")
-        print("Input data keys:", data.keys())
+        logger.debug("FetchingContract init keys: %s", list(data.keys()))
         try:
             super().__init__(**data)
-            print("Contract created successfully!")
-            self._debug_print()
-        except Exception as e:
-            print(f"Error creating contract: {str(e)}")
+            logger.debug("FetchingContract created: market=%s start=%s end=%s", data.get('market'), data.get('start_date'), data.get('end_date'))
+        except (ValidationError, ValueError) as e:
+            logger.error("FetchingContract creation failed: %s", e)
             raise
 
     def _debug_print(self):
-        """Print detailed contract information for debugging"""
-        print("\n=== Contract Details ===")
-        print(f"Market: {self.market}")
-        print(f"Start Date: {self.start_date}")
-        print(f"End Date: {self.end_date}")
-        print(f"Metadata: {self.metadata}")
+        """Log contract details at DEBUG level."""
+        if not logger.isEnabledFor(logging.DEBUG):
+            return
+        logger.debug("FetchingContract: market=%s start=%s end=%s metadata=%s", self.market, self.start_date, self.end_date, self.metadata)
         if self.raw_data is not None:
-            print("\nRaw Data Summary:")
-            print(f"Type: {type(self.raw_data)}")
-            print(f"Shape: {self.raw_data.shape}")
-            print("Columns:", self.raw_data.columns.tolist())
-            print("Sample Data:")
-            print(self.raw_data.head(2))
+            logger.debug("raw_data shape=%s columns=%s", self.raw_data.shape, self.raw_data.columns.tolist())
         else:
-            print("Raw Data: None")
-        print("=======================\n")
+            logger.debug("raw_data=None")
 
     @field_validator('market')
     @classmethod
@@ -74,15 +67,11 @@ class FetchingContract(BaseModel):
     @classmethod
     def validate_raw_data(cls, value) -> Optional[pd.DataFrame]:
         """Validate and convert raw data to DataFrame"""
-        print("\n=== Raw Data Validation ===")
-        
         if value is None:
-            print("Raw data is None")
             return None
-            
+
         # Handle serialized DataFrame
         if isinstance(value, dict) and value.get('_is_dataframe'):
-            print("Deserializing DataFrame from dict")
             try:
                 value = pd.DataFrame(**{
                     'data': value['data'],
@@ -92,60 +81,44 @@ class FetchingContract(BaseModel):
                 if 'index' in value:
                     value = value.set_index('index')
                 return value
-            except Exception as e:
-                print(f"DataFrame deserialization failed: {str(e)}")
-                raise ValueError(f"Could not deserialize DataFrame: {str(e)}")
-            
+            except (KeyError, TypeError, ValueError) as e:
+                raise ValueError(f"Could not deserialize DataFrame: {str(e)}") from e
+
         # Convert dict to DataFrame
         if isinstance(value, dict):
-            print("Converting dict to DataFrame")
             try:
-                # Handle nested dicts
                 if all(isinstance(v, dict) for v in value.values()):
                     value = pd.DataFrame.from_dict(value, orient='index')
-                # Handle list values
                 elif all(isinstance(v, (list, pd.Series)) for v in value.values()):
                     value = pd.DataFrame(value)
-                # Handle scalar values
                 else:
                     value = pd.DataFrame([value], index=[0])
-            except Exception as e:
-                print(f"Dict conversion failed: {str(e)}")
-                raise ValueError(f"Could not convert dict to DataFrame: {str(e)}")
-                
-        # Validate DataFrame type
+            except (KeyError, TypeError, ValueError) as e:
+                raise ValueError(f"Could not convert dict to DataFrame: {str(e)}") from e
+
         if not isinstance(value, pd.DataFrame):
-            print(f"Invalid type: {type(value)}")
             raise ValueError(f"raw_data must be a pandas DataFrame, got {type(value)}")
-            
-        # Validate required columns
+
+        # Fill any missing OHLC columns with defaults
         required_columns = {'date', 'open', 'high', 'low', 'close'}
-        if not required_columns.issubset(value.columns):
-            missing = required_columns - set(value.columns)
-            print(f"Missing required columns: {missing}")
-            
-            # Try to create missing columns with default values
-            print("Attempting to create missing columns with default values")
+        missing = required_columns - set(value.columns)
+        if missing:
+            logger.warning("raw_data missing columns %s — filling with defaults", missing)
             for col in missing:
                 if col == 'date':
                     value['date'] = value.index if isinstance(value.index, pd.DatetimeIndex) else pd.to_datetime(value.index)
                 else:
-                    value[col] = 0.0  # Default value for OHLC columns
-                    
-            # Re-check if we now have all required columns
+                    value[col] = 0.0
             if not required_columns.issubset(value.columns):
                 raise ValueError(f"Could not create missing columns: {missing}")
-                
-        # Convert date column
+
+        # Coerce date column
         if 'date' in value.columns and not pd.api.types.is_datetime64_any_dtype(value['date']):
-            print("Converting date column to datetime")
             try:
                 value['date'] = pd.to_datetime(value['date'])
-            except Exception as e:
-                print(f"Date conversion failed: {str(e)}")
-                raise ValueError(f"Could not convert 'date' column to datetime: {str(e)}")
-                
-        print("Raw data validation successful")
+            except (ValueError, TypeError) as e:
+                raise ValueError(f"Could not convert 'date' column to datetime: {str(e)}") from e
+
         return value
 
     def to_dict(self) -> dict:
@@ -220,46 +193,32 @@ class ProcessingContract(BaseModel):
     transformation_steps: Dict[str, Any] = {}
     
     def __init__(self, **data):
-        print("\n=== ProcessingContract Initialization ===")
-        print("Input data keys:", data.keys())
+        logger.debug("ProcessingContract init keys: %s", list(data.keys()))
         try:
             super().__init__(**data)
-            print("Contract created successfully!")
-            self._debug_print()
-        except Exception as e:
-            print(f"Error creating contract: {str(e)}")
+            logger.debug("ProcessingContract created")
+        except (ValidationError, ValueError) as e:
+            logger.error("ProcessingContract creation failed: %s", e)
             raise
 
     def _debug_print(self):
-        """Print detailed contract information for debugging"""
-        print("\n=== Contract Details ===")
-        print(f"Validation Rules: {self.validation_rules}")
-        print(f"Cleaning Steps: {self.cleaning_steps}")
-        print(f"Transformation Steps: {self.transformation_steps}")
+        """Log contract details at DEBUG level."""
+        if not logger.isEnabledFor(logging.DEBUG):
+            return
+        logger.debug("ProcessingContract: validation_rules=%s cleaning=%s transform=%s", self.validation_rules, self.cleaning_steps, self.transformation_steps)
         if self.raw_data is not None:
-            print("\nRaw Data Summary:")
-            print(f"Type: {type(self.raw_data)}")
-            print(f"Shape: {self.raw_data.shape}")
-            print("Columns:", self.raw_data.columns.tolist())
-            print("Sample Data:")
-            print(self.raw_data.head(2))
+            logger.debug("raw_data shape=%s columns=%s", self.raw_data.shape, self.raw_data.columns.tolist())
         else:
-            print("Raw Data: None")
-        print("=======================\n")
+            logger.debug("raw_data=None")
 
     @field_validator('raw_data', mode='before')
     @classmethod
     def validate_raw_data(cls, value) -> Optional[pd.DataFrame]:
         """Validate and convert raw data to DataFrame"""
-        print("\n=== Raw Data Validation ===")
-        
         if value is None:
-            print("Raw data is None")
             return None
-            
-        # Handle serialized DataFrame
+
         if isinstance(value, dict) and value.get('_is_dataframe'):
-            print("Deserializing DataFrame from dict")
             try:
                 value = pd.DataFrame(**{
                     'data': value['data'],
@@ -269,60 +228,41 @@ class ProcessingContract(BaseModel):
                 if 'index' in value:
                     value = value.set_index('index')
                 return value
-            except Exception as e:
-                print(f"DataFrame deserialization failed: {str(e)}")
-                raise ValueError(f"Could not deserialize DataFrame: {str(e)}")
-            
-        # Convert dict to DataFrame
+            except (KeyError, TypeError, ValueError) as e:
+                raise ValueError(f"Could not deserialize DataFrame: {str(e)}") from e
+
         if isinstance(value, dict):
-            print("Converting dict to DataFrame")
             try:
-                # Handle nested dicts
                 if all(isinstance(v, dict) for v in value.values()):
                     value = pd.DataFrame.from_dict(value, orient='index')
-                # Handle list values
                 elif all(isinstance(v, (list, pd.Series)) for v in value.values()):
                     value = pd.DataFrame(value)
-                # Handle scalar values
                 else:
                     value = pd.DataFrame([value], index=[0])
-            except Exception as e:
-                print(f"Dict conversion failed: {str(e)}")
-                raise ValueError(f"Could not convert dict to DataFrame: {str(e)}")
-                
-        # Validate DataFrame type
+            except (KeyError, TypeError, ValueError) as e:
+                raise ValueError(f"Could not convert dict to DataFrame: {str(e)}") from e
+
         if not isinstance(value, pd.DataFrame):
-            print(f"Invalid type: {type(value)}")
             raise ValueError(f"raw_data must be a pandas DataFrame, got {type(value)}")
-            
-        # Validate required columns
+
         required_columns = {'date', 'open', 'high', 'low', 'close'}
-        if not required_columns.issubset(value.columns):
-            missing = required_columns - set(value.columns)
-            print(f"Missing required columns: {missing}")
-            
-            # Try to create missing columns with default values
-            print("Attempting to create missing columns with default values")
+        missing = required_columns - set(value.columns)
+        if missing:
+            logger.warning("raw_data missing columns %s — filling with defaults", missing)
             for col in missing:
                 if col == 'date':
                     value['date'] = value.index if isinstance(value.index, pd.DatetimeIndex) else pd.to_datetime(value.index)
                 else:
-                    value[col] = 0.0  # Default value for OHLC columns
-                    
-            # Re-check if we now have all required columns
+                    value[col] = 0.0
             if not required_columns.issubset(value.columns):
                 raise ValueError(f"Could not create missing columns: {missing}")
-                
-        # Convert date column
+
         if 'date' in value.columns and not pd.api.types.is_datetime64_any_dtype(value['date']):
-            print("Converting date column to datetime")
             try:
                 value['date'] = pd.to_datetime(value['date'])
-            except Exception as e:
-                print(f"Date conversion failed: {str(e)}")
-                raise ValueError(f"Could not convert 'date' column to datetime: {str(e)}")
-                
-        print("Raw data validation successful")
+            except (ValueError, TypeError) as e:
+                raise ValueError(f"Could not convert 'date' column to datetime: {str(e)}") from e
+
         return value
 
     def to_dict(self) -> dict:
@@ -396,47 +336,32 @@ class AnalysisContract(BaseModel):
     risk_metrics: Dict[str, float] = {}
     
     def __init__(self, **data):
-        print("\n=== AnalysisContract Initialization ===")
-        print("Input data keys:", data.keys())
+        logger.debug("AnalysisContract init keys: %s", list(data.keys()))
         try:
             super().__init__(**data)
-            print("Contract created successfully!")
-            self._debug_print()
-        except Exception as e:
-            print(f"Error creating contract: {str(e)}")
+            logger.debug("AnalysisContract created")
+        except (ValidationError, ValueError) as e:
+            logger.error("AnalysisContract creation failed: %s", e)
             raise
 
     def _debug_print(self):
-        """Print detailed contract information for debugging"""
-        print("\n=== Contract Details ===")
-        print(f"Analysis Results: {self.analysis_results}")
-        print(f"Metrics: {self.metrics}")
-        print(f"Optimal Values: {self.optimal_values}")
-        print(f"Risk Metrics: {self.risk_metrics}")
+        """Log contract details at DEBUG level."""
+        if not logger.isEnabledFor(logging.DEBUG):
+            return
+        logger.debug("AnalysisContract: metrics=%s optimal=%s risk=%s", self.metrics, self.optimal_values, self.risk_metrics)
         if self.processed_data is not None:
-            print("\nProcessed Data Summary:")
-            print(f"Type: {type(self.processed_data)}")
-            print(f"Shape: {self.processed_data.shape}")
-            print("Columns:", self.processed_data.columns.tolist())
-            print("Sample Data:")
-            print(self.processed_data.head(2))
+            logger.debug("processed_data shape=%s columns=%s", self.processed_data.shape, self.processed_data.columns.tolist())
         else:
-            print("Processed Data: None")
-        print("=======================\n")
+            logger.debug("processed_data=None")
 
     @field_validator('processed_data', mode='before')
     @classmethod
     def validate_processed_data(cls, value) -> Optional[pd.DataFrame]:
         """Validate and convert processed data to DataFrame"""
-        print("\n=== Processed Data Validation ===")
-        
         if value is None:
-            print("Processed data is None")
             return None
-            
-        # Handle serialized DataFrame
+
         if isinstance(value, dict) and value.get('_is_dataframe'):
-            print("Deserializing DataFrame from dict")
             try:
                 value = pd.DataFrame(**{
                     'data': value['data'],
@@ -446,60 +371,41 @@ class AnalysisContract(BaseModel):
                 if 'index' in value:
                     value = value.set_index('index')
                 return value
-            except Exception as e:
-                print(f"DataFrame deserialization failed: {str(e)}")
-                raise ValueError(f"Could not deserialize DataFrame: {str(e)}")
-            
-        # Convert dict to DataFrame
+            except (KeyError, TypeError, ValueError) as e:
+                raise ValueError(f"Could not deserialize DataFrame: {str(e)}") from e
+
         if isinstance(value, dict):
-            print("Converting dict to DataFrame")
             try:
-                # Handle nested dicts
                 if all(isinstance(v, dict) for v in value.values()):
                     value = pd.DataFrame.from_dict(value, orient='index')
-                # Handle list values
                 elif all(isinstance(v, (list, pd.Series)) for v in value.values()):
                     value = pd.DataFrame(value)
-                # Handle scalar values
                 else:
                     value = pd.DataFrame([value], index=[0])
-            except Exception as e:
-                print(f"Dict conversion failed: {str(e)}")
-                raise ValueError(f"Could not convert dict to DataFrame: {str(e)}")
-                
-        # Validate DataFrame type
+            except (KeyError, TypeError, ValueError) as e:
+                raise ValueError(f"Could not convert dict to DataFrame: {str(e)}") from e
+
         if not isinstance(value, pd.DataFrame):
-            print(f"Invalid type: {type(value)}")
             raise ValueError(f"processed_data must be a pandas DataFrame, got {type(value)}")
-            
-        # Validate required columns
+
         required_columns = {'date', 'open', 'high', 'low', 'close'}
-        if not required_columns.issubset(value.columns):
-            missing = required_columns - set(value.columns)
-            print(f"Missing required columns: {missing}")
-            
-            # Try to create missing columns with default values
-            print("Attempting to create missing columns with default values")
+        missing = required_columns - set(value.columns)
+        if missing:
+            logger.warning("processed_data missing columns %s — filling with defaults", missing)
             for col in missing:
                 if col == 'date':
                     value['date'] = value.index if isinstance(value.index, pd.DatetimeIndex) else pd.to_datetime(value.index)
                 else:
-                    value[col] = 0.0  # Default value for OHLC columns
-                    
-            # Re-check if we now have all required columns
+                    value[col] = 0.0
             if not required_columns.issubset(value.columns):
                 raise ValueError(f"Could not create missing columns: {missing}")
-                
-        # Convert date column
+
         if 'date' in value.columns and not pd.api.types.is_datetime64_any_dtype(value['date']):
-            print("Converting date column to datetime")
             try:
                 value['date'] = pd.to_datetime(value['date'])
-            except Exception as e:
-                print(f"Date conversion failed: {str(e)}")
-                raise ValueError(f"Could not convert 'date' column to datetime: {str(e)}")
-                
-        print("Processed data validation successful")
+            except (ValueError, TypeError) as e:
+                raise ValueError(f"Could not convert 'date' column to datetime: {str(e)}") from e
+
         return value
 
     def to_dict(self) -> dict:
@@ -594,25 +500,19 @@ class VisualizationContract(BaseModel):
     layout_config: Dict[str, Any] = {}
     
     def __init__(self, **data):
-        print("\n=== VisualizationContract Initialization ===")
-        print("Input data keys:", data.keys())
+        logger.debug("VisualizationContract init keys: %s", list(data.keys()))
         try:
             super().__init__(**data)
-            print("Contract created successfully!")
-            self._debug_print()
-        except Exception as e:
-            print(f"Error creating contract: {str(e)}")
+            logger.debug("VisualizationContract created")
+        except (ValidationError, ValueError) as e:
+            logger.error("VisualizationContract creation failed: %s", e)
             raise
 
     def _debug_print(self):
-        """Print detailed contract information for debugging"""
-        print("\n=== Contract Details ===")
-        # print(f"Analysis Results: {self.analysis_results}")
-        print(f"Charts: {self.charts}")
-        print(f"Tables: {self.tables}")
-        print(f"Summaries: {self.summaries}")
-        print(f"Layout Config: {self.layout_config}")
-        print("=======================\n")
+        """Log contract details at DEBUG level."""
+        if not logger.isEnabledFor(logging.DEBUG):
+            return
+        logger.debug("VisualizationContract: charts=%s tables=%s summaries=%s layout=%s", list(self.charts.keys()), list(self.tables.keys()), list(self.summaries.keys()), self.layout_config)
 
     @field_validator('analysis_results')
     @classmethod
@@ -690,8 +590,8 @@ class VisualizationContract(BaseModel):
                     try:
                         import plotly.graph_objects as go
                         data['charts'][chart_name] = go.Figure(chart_data)
-                    except Exception as e:
-                        print(f"Error deserializing Plotly figure {chart_name}: {str(e)}")
+                    except (ValueError, TypeError) as e:
+                        logger.error("Error deserializing Plotly figure %s: %s", chart_name, e)
                         data['charts'][chart_name] = None
                         
         return cls(**data)

@@ -3,6 +3,7 @@
 import pandas as pd
 import numpy as np
 from dataclasses import dataclass
+from constants import OHLC_Q1_THRESHOLD, OHLC_Q2_THRESHOLD, RANGE_BUFFER_DAYS, HOVER_DISTANCE_PX
 
 class InteractionTracker:
     """Tracks and manages user interactions (hover/click) with chart elements.
@@ -22,7 +23,7 @@ class InteractionTracker:
             hovermode="x unified",  # Show unified hover across all subplots
             hoversubplots="axis",    # Enable hover across all subplots along vertical axis
             spikedistance=-1,       # Disable hover text offset
-            hoverdistance=100,
+            hoverdistance=HOVER_DISTANCE_PX,
             hoverlabel=dict(
                 bgcolor="#1e1e1e",
                 font_size=12,
@@ -124,14 +125,14 @@ class RangeManager:
 
     def __init__(self, ohlc_df):
         self.ohlc_df = ohlc_df
-        self.buffer_days = 2
+        self.buffer_days = RANGE_BUFFER_DAYS
         self._init_ranges()
         
     def _init_ranges(self):
         """Initialize base ranges from OHLC data"""
-        if len(self.ohlc_df) < 30:
+        if len(self.ohlc_df) < OHLC_Q1_THRESHOLD:
             end_date = pd.Timestamp(f"{self.ohlc_df['date'].dt.year[0]}-03-31")
-        elif len(self.ohlc_df) < 60:
+        elif len(self.ohlc_df) < OHLC_Q2_THRESHOLD:
             end_date = pd.Timestamp(f"{self.ohlc_df['date'].dt.year[0]}-06-30")
         else:
             end_date = self.ohlc_df['date'].iloc[-1]

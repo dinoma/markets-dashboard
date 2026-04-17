@@ -1,6 +1,7 @@
 
 import numpy as np
 import pandas as pd
+from constants import TRADING_DAYS_PER_YEAR
 
 class MetricsCalculator:
     """Centralized financial metrics calculations with validation and vectorized operations"""
@@ -10,7 +11,7 @@ class MetricsCalculator:
         """Calculate annualized Sharpe ratio with empty check and div-by-zero protection"""
         if daily_returns.empty or daily_returns.std() == 0:
             return 0.0
-        return (daily_returns.mean() - risk_free_rate) / daily_returns.std() * np.sqrt(252)
+        return (daily_returns.mean() - risk_free_rate) / daily_returns.std() * np.sqrt(TRADING_DAYS_PER_YEAR)
 
     @staticmethod
     def calculate_sortino_ratio(daily_returns: pd.Series, risk_free_rate: float = 0) -> float:
@@ -18,7 +19,7 @@ class MetricsCalculator:
         negative_returns = daily_returns[daily_returns < risk_free_rate]
         if negative_returns.empty or negative_returns.std() == 0:
             return 0.0
-        return (daily_returns.mean() - risk_free_rate) / negative_returns.std() * np.sqrt(252)
+        return (daily_returns.mean() - risk_free_rate) / negative_returns.std() * np.sqrt(TRADING_DAYS_PER_YEAR)
 
     @staticmethod
     def calculate_maximum_drawdown(cumulative_returns: pd.Series) -> float:
@@ -30,19 +31,19 @@ class MetricsCalculator:
     @staticmethod
     def calculate_volatility(daily_returns: pd.Series) -> float:
         """Calculate annualized volatility"""
-        return daily_returns.std() * np.sqrt(252)
+        return daily_returns.std() * np.sqrt(TRADING_DAYS_PER_YEAR)
 
     @staticmethod
     def calculate_calmar_ratio(daily_returns: pd.Series, max_drawdown: float) -> float:
         """Calculate Calmar ratio using annualized returns and max drawdown"""
-        annualized_return = daily_returns.mean() * 252  # 252 trading days
+        annualized_return = daily_returns.mean() * TRADING_DAYS_PER_YEAR
         return annualized_return / abs(max_drawdown)
 
     @staticmethod
     def calculate_expected_return(daily_returns: pd.Series) -> float:
         """Calculate Calmar ratio using annualized returns and max drawdown"""
         average_daily_return = daily_returns.mean()
-        annualized_expected_return = average_daily_return * 252  # assuming 252 trading days in a year
+        annualized_expected_return = average_daily_return * TRADING_DAYS_PER_YEAR
         return annualized_expected_return
 
     @classmethod

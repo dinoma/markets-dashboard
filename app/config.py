@@ -1,5 +1,6 @@
 import os
 from dotenv import load_dotenv
+from constants import BAR_WIDTH_LEGACY, BAR_WIDTH_DISAGGREGATED
 
 # Load environment variables from a .env file if present
 load_dotenv()
@@ -251,7 +252,7 @@ POSITION_CHANGE_CONFIG = {
             ('pct_change_comm_short', '% Change Commercials Short', 'comm_short')
         ],
         'colors': COLORS,
-        'bar_width': 70000000
+        'bar_width': BAR_WIDTH_LEGACY
     },
     'disaggregated': {
         'columns': [
@@ -263,7 +264,7 @@ POSITION_CHANGE_CONFIG = {
             ('pct_change_swap_short', '% Change Swap Dealers Short', 'other_short')
         ],
         'colors': COLORS,
-        'bar_width': 60000000
+        'bar_width': BAR_WIDTH_DISAGGREGATED
     },
     'tff': {
         'columns': [
@@ -275,7 +276,7 @@ POSITION_CHANGE_CONFIG = {
             ('pct_change_dealer_short', '% Change Dealers Short', 'other_short')
         ],
         'colors': COLORS,
-        'bar_width': 60000000
+        'bar_width': BAR_WIDTH_DISAGGREGATED
     }
 }
 

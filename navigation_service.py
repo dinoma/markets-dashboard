@@ -1,28 +1,33 @@
+from datetime import datetime
+from constants import MIN_MARKET_DATA_YEAR
+
+
 class NavigationService:
     """Centralized service for market and year navigation with state validation"""
-    
-    def __init__(self, market_tickers, initial_market=None, initial_year=2023):
+
+    def __init__(self, market_tickers, initial_market=None, initial_year=None):
         """
         Initialize navigation service with market configuration.
-        
+
         Args:
             market_tickers (dict): Mapping of market names to tickers
             initial_market (str): Starting market (defaults to first in list)
-            initial_year (int): Starting year (defaults to 2023)
+            initial_year (int): Starting year (defaults to current year)
         """
+        if initial_year is None:
+            initial_year = datetime.now().year
         self.market_tickers = market_tickers
         self.markets = list(market_tickers.keys())
         self.current_market = initial_market if initial_market else self.markets[0]
-        self.current_year = initial_year if self.validate_year(initial_year) else 2023
-        
+        self.current_year = initial_year if self.validate_year(initial_year) else datetime.now().year
+
     def validate_market(self, market):
         """Validate if market exists in configuration"""
         return market in self.market_tickers
-        
+
     def validate_year(self, year):
         """Validate year is within allowed range"""
-        from datetime import datetime
-        return 1994 <= year <= datetime.now().year
+        return MIN_MARKET_DATA_YEAR <= year <= datetime.now().year
         
     def next_market(self):
         """Move to next market with wrap-around"""
