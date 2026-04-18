@@ -9,6 +9,64 @@ from pydantic_core import core_schema
 
 logger = logging.getLogger(__name__)
 
+
+def _validate_dataframe(value, field_name: str):
+    """Shared DataFrame coercion and validation used by contract field validators."""
+    if value is None:
+        return None
+
+    if isinstance(value, dict) and value.get('_is_dataframe'):
+        try:
+            value = pd.DataFrame(**{
+                'data': value['data'],
+                'index': value['index'],
+                'columns': value['columns'],
+            })
+            if 'index' in value:
+                value = value.set_index('index')
+            return value
+        except (KeyError, TypeError, ValueError) as e:
+            raise ValueError(f"Could not deserialize DataFrame: {str(e)}") from e
+
+    if isinstance(value, dict):
+        try:
+            if all(isinstance(v, dict) for v in value.values()):
+                value = pd.DataFrame.from_dict(value, orient='index')
+            elif all(isinstance(v, (list, pd.Series)) for v in value.values()):
+                value = pd.DataFrame(value)
+            else:
+                value = pd.DataFrame([value], index=[0])
+        except (KeyError, TypeError, ValueError) as e:
+            raise ValueError(f"Could not convert dict to DataFrame: {str(e)}") from e
+
+    if not isinstance(value, pd.DataFrame):
+        raise ValueError(f"{field_name} must be a pandas DataFrame, got {type(value)}")
+
+    required_columns = {'date', 'open', 'high', 'low', 'close'}
+    missing = required_columns - set(value.columns)
+    if missing:
+        logger.warning("%s missing columns %s — filling with defaults", field_name, missing)
+        for col in missing:
+            if col == 'date':
+                value['date'] = (
+                    value.index
+                    if isinstance(value.index, pd.DatetimeIndex)
+                    else pd.to_datetime(value.index)
+                )
+            else:
+                value[col] = 0.0
+        if not required_columns.issubset(value.columns):
+            raise ValueError(f"Could not create missing columns: {missing}")
+
+    if 'date' in value.columns and not pd.api.types.is_datetime64_any_dtype(value['date']):
+        try:
+            value['date'] = pd.to_datetime(value['date'])
+        except (ValueError, TypeError) as e:
+            raise ValueError(f"Could not convert 'date' column to datetime: {str(e)}") from e
+
+    return value
+
+
 class FetchingContract(BaseModel):
     """Standardized contract for data fetching stage with enhanced debugging"""
     model_config = ConfigDict(
@@ -67,59 +125,7 @@ class FetchingContract(BaseModel):
     @classmethod
     def validate_raw_data(cls, value) -> Optional[pd.DataFrame]:
         """Validate and convert raw data to DataFrame"""
-        if value is None:
-            return None
-
-        # Handle serialized DataFrame
-        if isinstance(value, dict) and value.get('_is_dataframe'):
-            try:
-                value = pd.DataFrame(**{
-                    'data': value['data'],
-                    'index': value['index'],
-                    'columns': value['columns']
-                })
-                if 'index' in value:
-                    value = value.set_index('index')
-                return value
-            except (KeyError, TypeError, ValueError) as e:
-                raise ValueError(f"Could not deserialize DataFrame: {str(e)}") from e
-
-        # Convert dict to DataFrame
-        if isinstance(value, dict):
-            try:
-                if all(isinstance(v, dict) for v in value.values()):
-                    value = pd.DataFrame.from_dict(value, orient='index')
-                elif all(isinstance(v, (list, pd.Series)) for v in value.values()):
-                    value = pd.DataFrame(value)
-                else:
-                    value = pd.DataFrame([value], index=[0])
-            except (KeyError, TypeError, ValueError) as e:
-                raise ValueError(f"Could not convert dict to DataFrame: {str(e)}") from e
-
-        if not isinstance(value, pd.DataFrame):
-            raise ValueError(f"raw_data must be a pandas DataFrame, got {type(value)}")
-
-        # Fill any missing OHLC columns with defaults
-        required_columns = {'date', 'open', 'high', 'low', 'close'}
-        missing = required_columns - set(value.columns)
-        if missing:
-            logger.warning("raw_data missing columns %s — filling with defaults", missing)
-            for col in missing:
-                if col == 'date':
-                    value['date'] = value.index if isinstance(value.index, pd.DatetimeIndex) else pd.to_datetime(value.index)
-                else:
-                    value[col] = 0.0
-            if not required_columns.issubset(value.columns):
-                raise ValueError(f"Could not create missing columns: {missing}")
-
-        # Coerce date column
-        if 'date' in value.columns and not pd.api.types.is_datetime64_any_dtype(value['date']):
-            try:
-                value['date'] = pd.to_datetime(value['date'])
-            except (ValueError, TypeError) as e:
-                raise ValueError(f"Could not convert 'date' column to datetime: {str(e)}") from e
-
-        return value
+        return _validate_dataframe(value, 'raw_data')
 
     def to_dict(self) -> dict:
         """Convert contract to dict with DataFrame serialization"""
@@ -215,55 +221,7 @@ class ProcessingContract(BaseModel):
     @classmethod
     def validate_raw_data(cls, value) -> Optional[pd.DataFrame]:
         """Validate and convert raw data to DataFrame"""
-        if value is None:
-            return None
-
-        if isinstance(value, dict) and value.get('_is_dataframe'):
-            try:
-                value = pd.DataFrame(**{
-                    'data': value['data'],
-                    'index': value['index'],
-                    'columns': value['columns']
-                })
-                if 'index' in value:
-                    value = value.set_index('index')
-                return value
-            except (KeyError, TypeError, ValueError) as e:
-                raise ValueError(f"Could not deserialize DataFrame: {str(e)}") from e
-
-        if isinstance(value, dict):
-            try:
-                if all(isinstance(v, dict) for v in value.values()):
-                    value = pd.DataFrame.from_dict(value, orient='index')
-                elif all(isinstance(v, (list, pd.Series)) for v in value.values()):
-                    value = pd.DataFrame(value)
-                else:
-                    value = pd.DataFrame([value], index=[0])
-            except (KeyError, TypeError, ValueError) as e:
-                raise ValueError(f"Could not convert dict to DataFrame: {str(e)}") from e
-
-        if not isinstance(value, pd.DataFrame):
-            raise ValueError(f"raw_data must be a pandas DataFrame, got {type(value)}")
-
-        required_columns = {'date', 'open', 'high', 'low', 'close'}
-        missing = required_columns - set(value.columns)
-        if missing:
-            logger.warning("raw_data missing columns %s — filling with defaults", missing)
-            for col in missing:
-                if col == 'date':
-                    value['date'] = value.index if isinstance(value.index, pd.DatetimeIndex) else pd.to_datetime(value.index)
-                else:
-                    value[col] = 0.0
-            if not required_columns.issubset(value.columns):
-                raise ValueError(f"Could not create missing columns: {missing}")
-
-        if 'date' in value.columns and not pd.api.types.is_datetime64_any_dtype(value['date']):
-            try:
-                value['date'] = pd.to_datetime(value['date'])
-            except (ValueError, TypeError) as e:
-                raise ValueError(f"Could not convert 'date' column to datetime: {str(e)}") from e
-
-        return value
+        return _validate_dataframe(value, 'raw_data')
 
     def to_dict(self) -> dict:
         """Convert contract to dict with DataFrame serialization"""
@@ -358,55 +316,7 @@ class AnalysisContract(BaseModel):
     @classmethod
     def validate_processed_data(cls, value) -> Optional[pd.DataFrame]:
         """Validate and convert processed data to DataFrame"""
-        if value is None:
-            return None
-
-        if isinstance(value, dict) and value.get('_is_dataframe'):
-            try:
-                value = pd.DataFrame(**{
-                    'data': value['data'],
-                    'index': value['index'],
-                    'columns': value['columns']
-                })
-                if 'index' in value:
-                    value = value.set_index('index')
-                return value
-            except (KeyError, TypeError, ValueError) as e:
-                raise ValueError(f"Could not deserialize DataFrame: {str(e)}") from e
-
-        if isinstance(value, dict):
-            try:
-                if all(isinstance(v, dict) for v in value.values()):
-                    value = pd.DataFrame.from_dict(value, orient='index')
-                elif all(isinstance(v, (list, pd.Series)) for v in value.values()):
-                    value = pd.DataFrame(value)
-                else:
-                    value = pd.DataFrame([value], index=[0])
-            except (KeyError, TypeError, ValueError) as e:
-                raise ValueError(f"Could not convert dict to DataFrame: {str(e)}") from e
-
-        if not isinstance(value, pd.DataFrame):
-            raise ValueError(f"processed_data must be a pandas DataFrame, got {type(value)}")
-
-        required_columns = {'date', 'open', 'high', 'low', 'close'}
-        missing = required_columns - set(value.columns)
-        if missing:
-            logger.warning("processed_data missing columns %s — filling with defaults", missing)
-            for col in missing:
-                if col == 'date':
-                    value['date'] = value.index if isinstance(value.index, pd.DatetimeIndex) else pd.to_datetime(value.index)
-                else:
-                    value[col] = 0.0
-            if not required_columns.issubset(value.columns):
-                raise ValueError(f"Could not create missing columns: {missing}")
-
-        if 'date' in value.columns and not pd.api.types.is_datetime64_any_dtype(value['date']):
-            try:
-                value['date'] = pd.to_datetime(value['date'])
-            except (ValueError, TypeError) as e:
-                raise ValueError(f"Could not convert 'date' column to datetime: {str(e)}") from e
-
-        return value
+        return _validate_dataframe(value, 'processed_data')
 
     def to_dict(self) -> dict:
         """Convert contract to dict with DataFrame serialization"""
