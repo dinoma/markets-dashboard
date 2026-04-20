@@ -1,14 +1,4 @@
-"""
-Queues package for async message processing between pipeline stages.
-
-Exports:
-    - BaseQueue: Base class for all queues
-    - FetchingQueue: Queue for FetchingContract messages
-    - ProcessingQueue: Queue for ProcessingContract messages
-    - AnalysisQueue: Queue for AnalysisContract messages
-    - VisualizationQueue: Queue for VisualizationContract messages
-    - QueueManager: Manages all queues and worker threads
-"""
+"""In-memory pipeline queues for passing contracts between processing stages."""
 
 from .base import BaseQueue
 from .fetching import FetchingQueue
@@ -18,10 +8,10 @@ from .visualization import VisualizationQueue
 from .manager import QueueManager
 
 __all__ = [
-    'BaseQueue',
-    'FetchingQueue',
-    'ProcessingQueue',
-    'AnalysisQueue',
-    'VisualizationQueue',
-    'QueueManager'
+    "BaseQueue",
+    "FetchingQueue",
+    "ProcessingQueue",
+    "AnalysisQueue",
+    "VisualizationQueue",
+    "QueueManager",
 ]

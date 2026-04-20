@@ -1,131 +1,56 @@
-import redis
-import json
-from typing import Dict, Any, Optional
+from __future__ import annotations
+
+from collections import deque
+from typing import Any, Optional
 import logging
-from abc import ABC, abstractmethod
+
+logger = logging.getLogger(__name__)
 
 
-class BaseQueue(ABC):
-    """Base class for message queues with common functionality"""
+class BaseQueue:
+    """In-memory FIFO queue for passing contracts between pipeline stages.
 
-    def __init__(self, queue_name: str, redis_host: str = 'localhost', redis_port: int = 6379):
-        """
-        Args:
-            queue_name (str): Name of the queue
-            redis_host (str): Redis server host
-            redis_port (int): Redis server port
-        """
-        self.queue_name = queue_name
-        self.redis_host = redis_host
-        self.redis_port = redis_port
-        self.redis = None
-        self.logger = self._setup_logger()
-        self._connect_redis()
+    Replaces the previous Redis-backed implementation; contracts are held in a
+    thread-local deque and never serialised to an external broker.  The API is
+    intentionally kept identical to the old interface so call sites require no
+    changes.
+    """
 
-    def _setup_logger(self):
-        """Configure logger for the queue"""
-        logger = logging.getLogger(f"{self.queue_name}_queue")
-        handler = logging.StreamHandler()
-        formatter = logging.Formatter(
-            '%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
-        logger.setLevel(logging.INFO)
-        return logger
+    def __init__(self, name: str) -> None:
+        self._name = name
+        self._queue: deque[Any] = deque()
 
-    def _connect_redis(self):
-        """Establish connection to Redis server"""
-        try:
-            self.redis = redis.Redis(
-                host=self.redis_host,
-                port=self.redis_port,
-                socket_connect_timeout=1,  # 1 second timeout
-                socket_timeout=1,
-                decode_responses=True
-            )
-            # Test the connection
-            self.redis.ping()
-            self.logger.info(f"Connected to Redis at {self.redis_host}:{self.redis_port}")
-        except redis.ConnectionError as e:
-            self.logger.error(f"Could not connect to Redis: {e}")
-            self.redis = None
+    @property
+    def name(self) -> str:
+        """Logical name of this queue."""
+        return self._name
 
-    def enqueue(self, message: Dict[str, Any]) -> bool:
-        """
-        Add a message to the queue
-
-        Args:
-            message (dict): Message to enqueue
+    def enqueue(self, item: Any) -> bool:
+        """Append *item* to the back of the queue.
 
         Returns:
-            bool: True if successful, False otherwise
+            True (always succeeds for in-memory storage).
         """
-        if not self.redis:
-            self.logger.error("Cannot enqueue - Redis connection not available")
-            return False
+        self._queue.append(item)
+        logger.debug("Enqueued item to %s (size=%d)", self._name, len(self._queue))
+        return True
 
-        try:
-            serialized = json.dumps(message)
-            self.redis.rpush(self.queue_name, serialized)
-            self.logger.debug(f"Enqueued message to {self.queue_name}")
-            return True
-        except Exception as e:
-            self.logger.error(f"Failed to enqueue message: {e}")
-            return False
-
-    def dequeue(self) -> Optional[Dict[str, Any]]:
-        """
-        Get and remove a message from the queue
-
-        Returns:
-            Optional[dict]: Dequeued message or None if empty/failed
-        """
-        if not self.redis:
-            self.logger.error("Cannot dequeue - Redis connection not available")
+    def dequeue(self) -> Optional[Any]:
+        """Remove and return the front item, or *None* if the queue is empty."""
+        if not self._queue:
             return None
-
-        try:
-            serialized = self.redis.lpop(self.queue_name)
-            if serialized:
-                self.logger.debug(f"Dequeued message from {self.queue_name}")
-                return json.loads(serialized)
-            return None
-        except Exception as e:
-            self.logger.error(f"Failed to dequeue message: {e}")
-            return None
+        item = self._queue.popleft()
+        logger.debug("Dequeued item from %s (size=%d)", self._name, len(self._queue))
+        return item
 
     def size(self) -> int:
-        """
-        Get current queue size
+        """Return the number of items currently in the queue."""
+        return len(self._queue)
 
-        Returns:
-            int: Number of messages in queue
-        """
-        if not self.redis:
-            self.logger.error("Cannot get queue size - Redis connection not available")
-            return 0
+    def clear(self) -> None:
+        """Discard all items in the queue."""
+        self._queue.clear()
 
-        try:
-            return self.redis.llen(self.queue_name)
-        except Exception as e:
-            self.logger.error(f"Failed to get queue size: {e}")
-            return 0
-
-    def clear(self) -> bool:
-        """
-        Clear all messages from the queue
-
-        Returns:
-            bool: True if successful, False otherwise
-        """
-        if not self.redis:
-            self.logger.error("Cannot clear queue - Redis connection not available")
-            return False
-
-        try:
-            self.redis.delete(self.queue_name)
-            self.logger.info(f"Cleared queue {self.queue_name}")
-            return True
-        except Exception as e:
-            self.logger.error(f"Failed to clear queue: {e}")
-            return False
+    def get_queue_status(self) -> dict[str, Any]:
+        """Return a status snapshot suitable for logging."""
+        return {"name": self._name, "size": self.size()}

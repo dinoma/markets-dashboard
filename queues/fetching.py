@@ -1,63 +1,34 @@
-from typing import Optional
-from .base import BaseQueue
-from data_contracts import FetchingContract
+from __future__ import annotations
+
+from typing import Any, Optional
 import logging
 
+from .base import BaseQueue
+from data_contracts import FetchingContract
+
+logger = logging.getLogger(__name__)
+
+
 class FetchingQueue(BaseQueue):
-    """Specialized queue for handling FetchingContract messages"""
-    
-    def __init__(self):
-        super().__init__('fetching_queue')
-        self.logger = logging.getLogger('fetching_queue')
-        
+    """Queue for :class:`~data_contracts.FetchingContract` objects."""
+
+    def __init__(self) -> None:
+        super().__init__("fetching")
+
     def enqueue_fetching_contract(self, contract: FetchingContract) -> bool:
-        """
-        Enqueue a FetchingContract message
-        
+        """Add *contract* to the queue.
+
         Args:
-            contract (FetchingContract): The contract to enqueue
-            
+            contract: A validated :class:`FetchingContract` instance.
+
         Returns:
-            bool: True if successful, False otherwise
+            True on success, False if *contract* has the wrong type.
         """
         if not isinstance(contract, FetchingContract):
-            self.logger.error("Invalid contract type - must be FetchingContract")
+            logger.error("Expected FetchingContract, got %s", type(contract).__name__)
             return False
-            
-        try:
-            # Use our custom serialization
-            return self.enqueue(contract.to_dict())
-        except Exception as e:
-            self.logger.error(f"Failed to enqueue FetchingContract: {e}")
-            return False
-            
+        return self.enqueue(contract)
+
     def dequeue_fetching_contract(self) -> Optional[FetchingContract]:
-        """
-        Dequeue a FetchingContract message
-        
-        Returns:
-            Optional[FetchingContract]: The dequeued contract or None if empty/failed
-        """
-        message = self.dequeue()
-        if not message:
-            return None
-            
-        try:
-            # Convert dict back to FetchingContract
-            return FetchingContract(**message)
-        except Exception as e:
-            self.logger.error(f"Failed to parse FetchingContract: {e}")
-            return None
-            
-    def get_queue_status(self) -> dict:
-        """
-        Get current status of the fetching queue
-        
-        Returns:
-            dict: Queue status information
-        """
-        return {
-            'queue_name': self.queue_name,
-            'size': self.size(),
-            'connected': self.redis is not None
-        }
+        """Remove and return the front :class:`FetchingContract`, or *None*."""
+        return self.dequeue()

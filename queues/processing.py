@@ -1,69 +1,34 @@
-import pandas as pd
+from __future__ import annotations
+
 from typing import Optional
-from .base import BaseQueue
-from data_contracts import ProcessingContract
 import logging
 
+from .base import BaseQueue
+from data_contracts import ProcessingContract
+
+logger = logging.getLogger(__name__)
+
+
 class ProcessingQueue(BaseQueue):
-    """Specialized queue for handling ProcessingContract messages"""
-    
-    def __init__(self):
-        super().__init__('processing_queue')
-        self.logger = logging.getLogger('processing_queue')
-        
+    """Queue for :class:`~data_contracts.ProcessingContract` objects."""
+
+    def __init__(self) -> None:
+        super().__init__("processing")
+
     def enqueue_processing_contract(self, contract: ProcessingContract) -> bool:
-        """
-        Enqueue a ProcessingContract message
-        
+        """Add *contract* to the queue.
+
         Args:
-            contract (ProcessingContract): The contract to enqueue
-            
+            contract: A validated :class:`ProcessingContract` instance.
+
         Returns:
-            bool: True if successful, False otherwise
+            True on success, False if *contract* has the wrong type.
         """
         if not isinstance(contract, ProcessingContract):
-            self.logger.error("Invalid contract type - must be ProcessingContract")
+            logger.error("Expected ProcessingContract, got %s", type(contract).__name__)
             return False
-            
-        try:
-            # Convert contract to dict with proper DataFrame serialization
-            contract_dict = contract.to_dict()
-            
-            return self.enqueue(contract_dict)
-        except Exception as e:
-            self.logger.error(f"Failed to enqueue ProcessingContract: {e}")
-            return False
-            
+        return self.enqueue(contract)
+
     def dequeue_processing_contract(self) -> Optional[ProcessingContract]:
-        """
-        Dequeue a ProcessingContract message
-        
-        Returns:
-            Optional[ProcessingContract]: The dequeued contract or None if empty/failed
-        """
-        message = self.dequeue()
-        if not message:
-            return None
-            
-        try:
-            # Convert dict back to ProcessingContract
-            if 'raw_data' in message and isinstance(message['raw_data'], list):
-                # Convert raw_data back to DataFrame
-                message['raw_data'] = pd.DataFrame(message['raw_data'])
-            return ProcessingContract(**message)
-        except Exception as e:
-            self.logger.error(f"Failed to parse ProcessingContract: {e}")
-            return None
-            
-    def get_queue_status(self) -> dict:
-        """
-        Get current status of the processing queue
-        
-        Returns:
-            dict: Queue status information
-        """
-        return {
-            'queue_name': self.queue_name,
-            'size': self.size(),
-            'connected': self.redis is not None
-        }
+        """Remove and return the front :class:`ProcessingContract`, or *None*."""
+        return self.dequeue()
