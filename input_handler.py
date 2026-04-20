@@ -43,11 +43,19 @@ class InputHandler:
         if rules.get('required', False) and value in (None, '', []):
             errors.append(self._get_error_message(input_name, 'required'))
             
-        # Range validation
-        if 'min' in rules and value < rules['min']:
-            errors.append(self._get_error_message(input_name, 'min'))
-        if 'max' in rules and value > rules['max']:
-            errors.append(self._get_error_message(input_name, 'max'))
+        # Range validation (guard against TypeError when value type doesn't support comparison)
+        if 'min' in rules:
+            try:
+                if value < rules['min']:
+                    errors.append(self._get_error_message(input_name, 'min'))
+            except TypeError:
+                pass
+        if 'max' in rules:
+            try:
+                if value > rules['max']:
+                    errors.append(self._get_error_message(input_name, 'max'))
+            except TypeError:
+                pass
             
         # Pattern validation
         if 'pattern' in rules and isinstance(value, str):

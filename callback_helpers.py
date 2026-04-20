@@ -1,5 +1,6 @@
 # callback_helpers.py
 
+import logging
 import numpy as np
 from app.config import Config
 import plotly.graph_objs as go
@@ -9,6 +10,9 @@ from datetime import timedelta
 from dash import html
 from app.config import DEFAULT_MARKET  # market_tickers, DEFAULT_YEAR
 from metrics_calculator import MetricsCalculator
+from constants import KMEANS_CLUSTERS, MAX_DATE_DELTA_DAYS
+
+logger = logging.getLogger(__name__)
 
 
 class AnnotationManager:
@@ -325,7 +329,7 @@ def calculate_stop_loss_return(yearly_data, optimal_results, direction):
     try:
         first_open = float(first_open)
     except ValueError:
-        print(f"Error: 'open' value {first_open} is not a valid float.")
+        logger.error(f"'open' value {first_open} is not a valid float")
 
     # Calculate the stop-loss and take-profit prices
     if direction == 'Long':
@@ -859,9 +863,9 @@ def create_cumulative_return_charts(start_month, start_day, end_month, end_day, 
             # Align indices and store stop-loss/exit returns
             combined_data_15y.loc[yearly_data_15y.index, 'stop_loss_returns'] = stop_loss_returns_15y.values
         else:
-            print(
-                f"Warning: Mismatch in lengths for year {year}. Yearly data length: {len(yearly_data_15y)}"
-                f", Stop-loss return length: {len(stop_loss_returns_15y)}")
+            logger.warning(
+                f"Mismatch in lengths for year {year}: yearly_data={len(yearly_data_15y)}, "
+                f"stop_loss_returns={len(stop_loss_returns_15y)}")
 
     # Process each year in the 30-year data for stop-loss/exit strategy
     for year in combined_data_30y['date'].dt.year.unique():
@@ -875,9 +879,9 @@ def create_cumulative_return_charts(start_month, start_day, end_month, end_day, 
             # Align indices and store stop-loss/exit returns
             combined_data_30y.loc[yearly_data_30y.index, 'stop_loss_returns'] = stop_loss_returns_30y.values
         else:
-            print(
-                f"Warning: Mismatch in lengths for year {year}. Yearly data length: {len(yearly_data_30y)}"
-                f", Stop-loss return length: {len(stop_loss_returns_30y)}")
+            logger.warning(
+                f"Mismatch in lengths for year {year}: yearly_data={len(yearly_data_30y)}, "
+                f"stop_loss_returns={len(stop_loss_returns_30y)}")
 
     # Calculate cumulative returns for both no stop-loss and with stop-loss/optimal exit strategies
     combined_data_15y['cumulative_no_stop'] = combined_data_15y['no_stop_returns'].cumsum()
@@ -926,7 +930,7 @@ def create_cumulative_return_charts(start_month, start_day, end_month, end_day, 
 def create_scatter_plots(day_data, direction="Long", best_stop_loss_level=None, best_exit_level=None,
                          expected_return_stop_loss=None, expected_return_exit=None, add_distribution_annotations=True,
                          use_gl=True,
-                         n_clusters=3):
+                         n_clusters=KMEANS_CLUSTERS):
     """
     Create scatter plots with clustering for better visualization.
 
@@ -1360,7 +1364,7 @@ def filter_pdhl_days(df):
     return df[df['day_type_1'] == 'PD-HL'].copy()
 
 
-def find_nearest_date(data, target_date, max_delta=3):
+def find_nearest_date(data, target_date, max_delta=MAX_DATE_DELTA_DAYS):
     """
     Find the nearest available date within a range of ±max_delta days from the target date.
 

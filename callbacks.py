@@ -21,8 +21,22 @@ from data_fetchers import (
 )
 from dotenv import load_dotenv
 import os
+import logging
+import pandas as pd
 from input_handler import InputHandler
-from callback_helpers import *
+from constants import MIN_MARKET_DATA_YEAR, BAR_WIDTH_LEGACY, BAR_WIDTH_DISAGGREGATED, MAX_YEAR_FALLBACK_ATTEMPTS
+from metrics_calculator import MetricsCalculator
+
+logger = logging.getLogger(__name__)
+from callback_helpers import (
+    AnnotationManager,
+    add_trace,
+    calculate_risk_metrics,
+    create_cumulative_return_charts,
+    get_market_by_index,
+    perform_analysis,
+    update_risk_metrics_summary,
+)
 from app.config import COLORS, market_tickers, TRACE_CONFIG
 
 # Initialize InputHandler
@@ -37,9 +51,9 @@ input_handler.register_input(
 
 input_handler.register_input(
     'year', 
-    {'type': int, 'required': True, 'min': 1994, 'max': datetime.now().year},
+    {'type': int, 'required': True, 'min': MIN_MARKET_DATA_YEAR, 'max': datetime.now().year},
     {'type': 'Year must be a number', 'required': 'Year is required',
-     'min': 'Year must be >= 1994', 'max': f'Year must be <= {datetime.now().year}'}
+     'min': f'Year must be >= {MIN_MARKET_DATA_YEAR}', 'max': f'Year must be <= {datetime.now().year}'}
 )
 import re
 
@@ -151,6 +165,101 @@ class CandlestickRenderer:
         )
 
 
+def _empty_analysis_outputs() -> list:
+    """Return 57 placeholder outputs for the analysis callback error/empty paths."""
+    empty_fig = go.Figure(layout=dict(
+        plot_bgcolor="#1e1e1e",
+        paper_bgcolor="#1e1e1e",
+        xaxis=dict(visible=False),
+        yaxis=dict(visible=False),
+        font=dict(family="'Press Start 2P', monospace", size=10, color='white'),
+    ))
+    return (
+        [[], "No data available", "No data available"]
+        + [empty_fig] * 6
+        + ["No data available"] * 4
+        + [[]] * 4
+        + [empty_fig] * 40
+    )
+
+
+def _fetch_ohlc_for_years(
+    stored_market: str,
+    years_range,
+    start_month: int,
+    start_day: int,
+    end_month: int,
+    end_day: int,
+) -> pd.DataFrame:
+    """Fetch and concatenate OHLC data across all requested year offsets."""
+    current_year = datetime.now().year
+    end_date_str = f'{current_year}-{end_month:02d}-{end_day:02d}'
+    frames = []
+
+    for year_offset in sorted(years_range, reverse=True):
+        target_year = current_year - year_offset
+        for attempt in range(MAX_YEAR_FALLBACK_ATTEMPTS):
+            try_year = target_year - attempt
+            if try_year < MIN_MARKET_DATA_YEAR or try_year > current_year:
+                continue
+            logger.debug("Attempting year %d (attempt %d)", try_year, attempt + 1)
+            df = fetch_ohlc_data_cached(
+                stored_market,
+                f'{try_year}-{start_month:02d}-{start_day:02d}',
+                end_date_str,
+            )
+            if not df.empty:
+                frames.append(df)
+                logger.debug("Fetched data for %d", try_year)
+                break
+            logger.debug(
+                "No data for %s %d-%02d-%02d to %s",
+                stored_market, try_year, start_month, start_day, end_date_str,
+            )
+        else:
+            logger.warning("Exhausted all attempts for year offset %d", year_offset)
+
+    return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
+
+
+def _run_analysis(ohlc_data: pd.DataFrame, start_date: str, end_date: str, direction: str) -> dict:
+    """Delegate to perform_analysis and return the results dict."""
+    return perform_analysis(start_date, end_date, direction, ohlc_data)
+
+
+def _prepare_day_trading_tables(analysis_results: dict, table_visualizer) -> tuple:
+    """Sort day trading stats DataFrames and return four rendered table datasets."""
+    stats_df = analysis_results['day_trading_stats']
+    stats_1_df = analysis_results['day_trading_stats_1']
+    stats_weekday_df = analysis_results['day_trading_stats_weekday']
+    stats_1_weekday_df = analysis_results['day_trading_stats_1_weekday']
+
+    total_row = stats_df[stats_df['year'] == 'Total']
+    stats_df = stats_df[stats_df['year'] != 'Total'].copy()
+    total_1_row = stats_1_df[stats_1_df['year'] == 'Total']
+    stats_1_df = stats_1_df[stats_1_df['year'] != 'Total'].copy()
+
+    stats_df['year'] = stats_df['year'].astype(int)
+    stats_1_df['year'] = stats_1_df['year'].astype(int)
+
+    stats_df = (pd.DataFrame(stats_df)
+                .drop_duplicates(subset=['year'])
+                .sort_values(by='year', ascending=False))
+    stats_1_df = (pd.DataFrame(stats_1_df)
+                  .drop_duplicates(subset=['year'])
+                  .sort_values(by='year', ascending=False))
+
+    stats_df = pd.concat([stats_df, total_row], ignore_index=True)
+    stats_1_df = pd.concat([stats_1_df, total_1_row], ignore_index=True)
+
+    return (
+        table_visualizer.render_day_trading_stats(stats_df),
+        table_visualizer.render_day_trading_stats(stats_1_df),
+        table_visualizer.render_day_trading_stats(stats_weekday_df),
+        table_visualizer.render_day_trading_stats(stats_1_weekday_df),
+    )
+
+
 def register_callbacks(app):
     # table_visualizer = TableVisualizer()
 
@@ -194,7 +303,7 @@ def register_callbacks(app):
                 continue
                 
             report_type = id_dict['report-type']
-            print(f"REPORT TYPE: {report_type}")
+            logger.debug("report_type: %s", report_type)
 
             # Correct format: {metric_part}-{cot_type}-{section_name}
             # Use regex to handle hyphenated section names properly
@@ -204,7 +313,7 @@ def register_callbacks(app):
                 cot_type = match.group(2)
                 section_name = match.group(3)
             else:
-                print(f"Invalid report type format: {report_type}")
+                logger.warning("Invalid report type format: %s", report_type)
                 continue
 
             # Map metric parts to display names
@@ -226,7 +335,7 @@ def register_callbacks(app):
                 if display_metric in calculated_metrics and not section_type.endswith('_calc'):
                     section_type += '_calc'
                 active_subplots.append((display_metric, section_type, cot_type.lower()))
-        print(f"Active Subplots: {active_subplots}")
+        logger.debug("Active subplots: %s", active_subplots)
         return active_subplots
 
     @app.callback(
@@ -245,15 +354,15 @@ def register_callbacks(app):
         # Validate inputs
         if not input_handler.validate_input('market', stored_market):
             market_errors = input_handler.get_input_errors('market')
-            print(f"Market validation failed: {market_errors}")
+            logger.warning("Market validation failed: %s", market_errors)
             return go.Figure()
-            
+
         if not input_handler.validate_input('year', current_year):
             year_errors = input_handler.get_input_errors('year')
-            print(f"Year validation failed: {year_errors}")
+            logger.warning("Year validation failed: %s", year_errors)
             return go.Figure()
         # Phase 1: Debug instrumentation
-        print(f"\n=== GRAPH UPDATE START ===\nActive subplots: {active_subplots}")
+        logger.debug("Graph update start: active_subplots=%s", active_subplots)
         assert isinstance(active_subplots, list), "Invalid active_subplots type"
         
         num_rows = 1 + len(active_subplots)
@@ -272,7 +381,7 @@ def register_callbacks(app):
         start_date_str = f"{current_year}-01-01"
         end_date_str = f"{current_year}-12-31"
         # Phase 1: Data pipeline validation
-        print(f"Fetching OHLC data for {stored_market} ({current_year})")
+        logger.debug("Fetching OHLC data for %s (%s)", stored_market, current_year)
         ohlc_fetcher = OHLCFetcher()
         ohlc_df = ohlc_fetcher.fetch_data({
             'market': stored_market,
@@ -281,13 +390,12 @@ def register_callbacks(app):
         })
         
         if not ohlc_df.empty:
-            print(f"Retrieved {len(ohlc_df)} OHLC records | Date range: {ohlc_df['date'].min()} to {ohlc_df['date'].max()}")
+            logger.debug("Retrieved %d OHLC records: %s to %s", len(ohlc_df), ohlc_df['date'].min(), ohlc_df['date'].max())
         else:
-            print("WARNING: Empty OHLC data returned!")
+            logger.warning("Empty OHLC data returned for %s %s", stored_market, current_year)
 
         if ohlc_df.empty:
-            # Phase 1: Empty state validation
-            print("Rendering empty data state")
+            logger.debug("Rendering empty data state for %s %s", stored_market, current_year)
             fig.update_layout(
                 plot_bgcolor="#1e1e1e",
                 paper_bgcolor="#1e1e1e",
@@ -360,11 +468,10 @@ def register_callbacks(app):
                         disable_hover=False
                     )
 
-        # Phase 1: Subplot results validation
         row_index = 2
-        print(f"Processing {len(active_subplots)} subplots:")
+        logger.debug("Processing %d subplots", len(active_subplots))
         for i, (subplot, table_suffix, report_type) in enumerate(active_subplots, 1):
-            print(f"  [{i}/{len(active_subplots)}] {subplot} | {table_suffix} | {report_type}")
+            logger.debug("  [%d/%d] %s | %s | %s", i, len(active_subplots), subplot, table_suffix, report_type)
             subplot_fetcher = SubplotFetcher()
             df = subplot_fetcher.fetch_data({
                 'market': stored_market,
@@ -438,7 +545,7 @@ def register_callbacks(app):
                     filtered_data = df[(df['date'] >= x_range[0]) & (df['date'] <= x_range[1])]
 
                     if report_type == 'legacy':
-                        set_bar_width = 70000000
+                        set_bar_width = BAR_WIDTH_LEGACY
                         add_trace(fig, filtered_data['date'],
                                   filtered_data['pct_change_noncomm_net_positions'],
                                   f'% Change Net Positions Non-Commercials', row=row_index, col=1,
@@ -449,10 +556,9 @@ def register_callbacks(app):
                                   f'% Change Net Positions Commercials', row=row_index, col=1,
                                   line_color=COLORS['comm_long'], chart_type='bar', bar_width=set_bar_width,
                                   bar_offset=1 * set_bar_width)
-                        # fig.update_yaxes(fixedrange=True)
 
                     elif report_type == 'disaggregated':
-                        set_bar_width = 60000000
+                        set_bar_width = BAR_WIDTH_DISAGGREGATED
                         add_trace(fig, filtered_data['date'],
                                   filtered_data['pct_change_m_money_net_positions'],
                                   f'% Change Net Positions Managed Money', row=row_index, col=1,
@@ -468,10 +574,9 @@ def register_callbacks(app):
                                   f'% Change Net Positions Swap Dealers', row=row_index, col=1,
                                   line_color=COLORS['other_long'], chart_type='bar', bar_width=set_bar_width,
                                   bar_offset=2 * set_bar_width)
-                        # fig.update_yaxes(fixedrange=True)
 
                     elif report_type == 'tff':
-                        set_bar_width = 60000000
+                        set_bar_width = BAR_WIDTH_DISAGGREGATED
                         add_trace(fig, filtered_data['date'],
                                   filtered_data['pct_change_lev_money_net_positions'],
                                   f'% Change Net Positions Managed Money', row=row_index, col=1,
@@ -487,7 +592,6 @@ def register_callbacks(app):
                                   f'% Change Net Positions Dealers', row=row_index, col=1,
                                   line_color=COLORS['other_long'], chart_type='bar', bar_width=set_bar_width,
                                   bar_offset=2 * set_bar_width)
-                        # fig.update_yaxes(fixedrange=True)
 
             row_index += 1
 
@@ -512,13 +616,10 @@ def register_callbacks(app):
             dragmode="pan"
         )
 
-        # Phase 1: Final validation
-        print(f"Finalizing layout with {num_rows} rows")
+        logger.debug("Finalizing layout with %d rows", num_rows)
         assert num_rows == 1 + len(active_subplots), "Subplot row count mismatch"
-        
-        # Apply axis presets to all subplots
+
         for i in range(1, num_rows + 1):
-            print(f"Updating axes for row {i}/{num_rows}")
             fig.update_xaxes({**Config.AXIS_PRESETS['default'].__dict__, 'range': x_range}, row=i, col=1)
             fig.update_yaxes(Config.AXIS_PRESETS['default'].__dict__, row=i, col=1)
 
@@ -550,22 +651,15 @@ def register_callbacks(app):
         if ctx.triggered:
             button_id = ctx.triggered[0]['prop_id'].split('.')[0]
             if 'prev-year-button' in button_id:
-                new_year = max(1994, current_year - 1)
+                new_year = max(MIN_MARKET_DATA_YEAR, current_year - 1)
             elif 'next-year-button' in button_id:
                 new_year = min(datetime.now().year, current_year + 1)
 
             if not input_handler.validate_input('year', new_year):
-                print(f"Invalid year selection: {new_year}")
+                logger.warning("Invalid year selection: %s", new_year)
                 return current_year
 
         return new_year
-        if ctx.triggered:
-            button_id = ctx.triggered[0]['prop_id'].split('.')[0]
-            if 'prev-year-button-main' in button_id or 'prev-year-button-right-panel' in button_id:
-                return max(1994, current_year - 1)
-            elif 'next-year-button-main' in button_id or 'next-year-button-right-panel' in button_id:
-                return min(datetime.now().year, current_year + 1)
-        return current_year
 
     # Combined callback for market updates
     @app.callback(
@@ -584,7 +678,7 @@ def register_callbacks(app):
         # Validate new market selection
         if selected_market and selected_market != current_market:
             if not input_handler.validate_input('market', selected_market):
-                print(f"Invalid market selection: {selected_market}")
+                logger.warning("Invalid market selection: %s", selected_market)
                 return current_market, current_market
 
         # Determine which input triggered the callback
@@ -720,8 +814,8 @@ def register_callbacks(app):
                             processor.validate_structure(ohlc_df)
                         )
                         processed_data['ohlc'] = ohlc_df.to_dict('records')
-                except Exception as e:
-                    print(f"Error processing OHLC data: {e}")
+                except (ValueError, KeyError, AttributeError) as e:
+                    logger.error("Error processing OHLC data: %s", e)
 
             # Process seasonality data if available
             if seasonality_data and isinstance(seasonality_data, dict):
@@ -734,8 +828,8 @@ def register_callbacks(app):
                                     processor.validate_structure(df)
                                 )
                                 processed_data['seasonality'][years] = df.to_dict('records')
-                except Exception as e:
-                    print(f"Error processing seasonality data: {e}")
+                except (ValueError, KeyError, AttributeError) as e:
+                    logger.error("Error processing seasonality data: %s", e)
 
             # Process subplot data if available
             if subplot_data and isinstance(subplot_data, dict):
@@ -748,8 +842,8 @@ def register_callbacks(app):
                                     processor.validate_structure(df)
                                 )
                                 processed_data['subplots'][key] = df.to_dict('records')
-                except Exception as e:
-                    print(f"Error processing subplot data: {e}")
+                except (ValueError, KeyError, AttributeError) as e:
+                    logger.error("Error processing subplot data: %s", e)
 
             return processed_data
 
@@ -825,425 +919,97 @@ def register_callbacks(app):
         )
         def perform_analysis_and_update_layout(processed_data, n_clicks, n_intervals,
                                                start_date, end_date, direction, years_range, stored_market):
-
-
-            # Initialize visualizers
             table_visualizer = TableVisualizer()
             distribution_visualizer = DistributionChartVisualizer()
 
-            # Handle None processed data
             if processed_data is None:
-                return tuple([None] * 50)  # Return None for all outputs
-
-            # Get processed data
-            ohlc_df = pd.DataFrame(processed_data.get('ohlc', []))
-            seasonality_dfs = {years: pd.DataFrame(data) for years, data in
-                               processed_data.get('seasonality', {}).items()}
-            subplot_dfs = {key: pd.DataFrame(data) for key, data in processed_data.get('subplots', {}).items()}
+                return tuple(_empty_analysis_outputs())
 
             start_month, start_day = pd.to_datetime(start_date).month, pd.to_datetime(start_date).day
             end_month, end_day = pd.to_datetime(end_date).month, pd.to_datetime(end_date).day
 
-            # Define empty components for error cases
-            empty_fig = go.Figure()
-            empty_components = [
-                [],  # yearly-analysis-table.data
-                "No data available",  # 15-year-summary.children
-                "No data available",  # 30-year-summary.children
-                empty_fig,  # distribution-chart-15.figure
-                empty_fig,  # distribution-chart-optimal-15.figure
-                empty_fig,  # distribution-chart-30.figure
-                empty_fig,  # distribution-chart-optimal-30.figure
-                empty_fig,  # cumulative-return-chart-15.figure
-                empty_fig,  # cumulative-return-chart-30.figure
-                "No data available",  # risk-metrics-summary-15.children
-                "No data available",  # risk-metrics-summary-30.children
-                "No data available",  # risk-metrics-summary-15-stoploss.children
-                "No data available",  # risk-metrics-summary-30-stoploss.children
-                [],  # day-trading-stats-table.data
-                [],  # day-trading-stats-1-table.data
-                [],  # day-trading-stats-weekday-table.data
-                [],  # day-trading-stats-1-weekday-table.data
-                empty_fig,  # dup-open-high-dist.figure
-                empty_fig,  # dup-open-low-dist.figure
-                empty_fig,  # dup-open-close-dist.figure
-                empty_fig,  # dup-open-low-vs-high-scatter.figure
-                empty_fig,  # dup-open-low-vs-close-scatter.figure
-                empty_fig,  # dup-low-vs-prev-low-dist.figure
-                empty_fig,  # dup-high-vs-prev-high-dist.figure
-                empty_fig,  # ddown-open-high-dist.figure
-                empty_fig,  # ddown-open-low-dist.figure
-                empty_fig,  # ddown-open-close-dist.figure
-                empty_fig,  # ddown-open-low-vs-high-scatter.figure
-                empty_fig,  # ddown-open-low-vs-close-scatter.figure
-                empty_fig,  # ddown-low-vs-prev-low-dist.figure
-                empty_fig,  # ddown-high-vs-prev-high-dist.figure
-                empty_fig,  # pdh-open-high-dist.figure
-                empty_fig,  # pdh-open-low-dist.figure
-                empty_fig,  # pdh-open-close-dist.figure
-                empty_fig,  # pdh-open-low-vs-high-scatter.figure
-                empty_fig,  # pdh-open-low-vs-close-scatter.figure
-                empty_fig,  # pdh-high-vs-prev-high-dist.figure
-                empty_fig,  # pdl-open-high-dist.figure
-                empty_fig,  # pdl-open-low-dist.figure
-                empty_fig,  # pdl-open-close-dist.figure
-                empty_fig,  # pdl-open-low-vs-high-scatter.figure
-                empty_fig,  # pdl-open-low-vs-close-scatter.figure
-                empty_fig,  # pdl-low-vs-prev-low-dist.figure
-                empty_fig,  # pdhl-open-high-dist.figure
-                empty_fig,  # pdhl-open-low-dist.figure
-                empty_fig,  # pdhl-open-close-dist.figure
-                empty_fig,  # pdhl-open-low-vs-high-scatter.figure
-                empty_fig,  # pdhl-open-low-vs-close-scatter.figure
-                empty_fig,  # pdhl-low-vs-prev-low-dist.figure
-                empty_fig,  # pdhl-high-vs-prev-high-dist.figure
-                empty_fig,  # pdh-pdl-pdhl-open-high-dist.figure
-                empty_fig,  # pdh-pdl-pdhl-open-low-dist.figure
-                empty_fig,  # pdh-pdl-pdhl-open-close-dist.figure
-                empty_fig,  # pdh-pdl-pdhl-open-low-vs-high-scatter.figure
-                empty_fig,  # pdh-pdl-pdhl-open-low-vs-close-scatter.figure
-                empty_fig,  # pdh-pdl-pdhl-low-vs-prev-low-dist.figure
-                empty_fig,  # pdh-pdl-pdhl-high-vs-prev-high-dist.figure
-            ]
-
-            # Initialize all queues with proper error handling
-            try:
-                fetching_queue = FetchingQueue()
-                processing_queue = ProcessingQueue()
-                analysis_queue = AnalysisQueue()
-                visualization_queue = VisualizationQueue()
-                
-                # Log queue initialization status
-                print(f"FetchingQueue initialized: {fetching_queue.get_queue_status()}")
-                print(f"ProcessingQueue initialized: {processing_queue.get_queue_status()}")
-                print(f"AnalysisQueue initialized: {analysis_queue.get_queue_status()}")
-                print(f"VisualizationQueue initialized: {visualization_queue.get_queue_status()}")
-            except Exception as e:
-                print(f"Failed to initialize queues: {e}")
-                return tuple(empty_components)
-            
-            # Create and enqueue fetching contracts
-            current_year = datetime.now().year
-            ohlc_data_all_years = pd.DataFrame()
-            
-            # Try years in reverse order (most recent first)
-            # Handle year offsets with proper boundary checking
-            for year_offset in sorted(years_range, reverse=True):
-                target_year = current_year - year_offset
-                end_date_str = f'{current_year}-{end_month:02d}-{end_day:02d}'
-                
-                # Try up to 3 previous years if no data found, starting from target year
-                for attempt in range(3):
-                    try_year = target_year - attempt
-                    if try_year < 1990 or try_year > current_year:
-                        continue
-                        
-                    print(f"Attempting year {try_year} (attempt {attempt + 1})")
-                    
-                    # Fetch data for this year
-                    ohlc_data_year = fetch_ohlc_data_cached(
-                        stored_market,
-                        f'{try_year}-{start_month:02d}-{start_day:02d}',
-                        end_date_str
-                    )
-
-                    if not ohlc_data_year.empty:
-                        # Create contract with string dates
-                        contract = FetchingContract(
-                            market=stored_market,
-                            start_date=f'{try_year}-{start_month:02d}-{start_day:02d}',
-                            end_date=end_date_str,
-                            raw_data=ohlc_data_year
-                        )
-                        
-                        if fetching_queue.enqueue_fetching_contract(contract):
-                            print(f"Successfully enqueued contract for {try_year}")
-                            break  # Move to next year offset
-                        else:
-                            print(f"Failed to enqueue contract for {try_year}")
-                    else:
-                        print(f"No data found for {stored_market} from {try_year}-{start_month:02d}-{start_day:02d} to {end_date_str}")
-                else:
-                    print(f"Exhausted all attempts for year offset {year_offset}")
-
-            # Process fetched data through processing queue
-            while True:
-                contract = fetching_queue.dequeue_fetching_contract()
-                if not contract:
-                    break
-                
-                # Fetch data using the contract
-                ohlc_data_year = fetch_ohlc_data_cached(
-                    contract.market,
-                    contract.start_date.strftime('%Y-%m-%d'),
-                    contract.end_date.strftime('%Y-%m-%d')
-                )
-                
-                if not ohlc_data_year.empty:
-                    # Create processing contract
-                    processing_contract = ProcessingContract(
-                        raw_data=ohlc_data_year,
-                        validation_rules={},
-                        cleaning_steps={},
-                        transformation_steps={}
-                    )
-                    
-                    # Enqueue for processing
-                    if processing_queue.enqueue_processing_contract(processing_contract):
-                        print(f"Enqueued processing contract for {contract.market} {contract.start_date}")
-                    else:
-                        print(f"Failed to enqueue processing contract for {contract.market} {contract.start_date}")
-                        continue
-                        
-                    # Process the data
-                    processed_contract = processing_queue.dequeue_processing_contract()
-                    if processed_contract:
-                        try:
-                            # Get the processed data from the contract
-                            processed_data = processed_contract.raw_data  # Using raw_data instead of processed_data
-                            if processed_data is not None:
-                                ohlc_data_all_years = pd.concat([ohlc_data_all_years, processed_data], ignore_index=True)
-                                print(f"Successfully processed data for {contract.market} {contract.start_date}")
-                            else:
-                                print(f"Processed data is None for {contract.market} {contract.start_date}")
-                        except Exception as e:
-                            print(f"Error processing data for {contract.market} {contract.start_date}: {str(e)}")
-                    else:
-                        print(f"No processed contract available for {contract.market} {contract.start_date}")
+            ohlc_data_all_years = _fetch_ohlc_for_years(
+                stored_market, years_range, start_month, start_day, end_month, end_day
+            )
 
             if ohlc_data_all_years.empty:
-                # Create empty figure with consistent styling
-                empty_fig.update_layout(
-                    plot_bgcolor="#1e1e1e",
-                    paper_bgcolor="#1e1e1e",
-                    xaxis=dict(visible=False),
-                    yaxis=dict(visible=False),
-                    font=dict(
-                        family="'Press Start 2P', monospace",
-                        size=10,
-                        color='white'
-                    )
-                )
-                return tuple(empty_components)
+                return tuple(_empty_analysis_outputs())
 
-            # Log queue statuses
-            print(f"FetchingQueue status: {fetching_queue.get_queue_status()}")
-            print(f"ProcessingQueue status: {processing_queue.get_queue_status()}")
-            print(f"AnalysisQueue status: {analysis_queue.get_queue_status()}")
-            print(f"VisualizationQueue status: {visualization_queue.get_queue_status()}")
-
-            # Create and enqueue analysis contract with error handling
             try:
-                analysis_contract = AnalysisContract(
-                    processed_data=ohlc_data_all_years,
-                    analysis_results={},
-                    metrics={},
-                    optimal_values={},
-                    risk_metrics={}
-                )
-                
-                if not analysis_queue.enqueue_analysis_contract(analysis_contract):
-                    print("Failed to enqueue analysis contract")
-                    return tuple(empty_components)
-                    
-                # Process analysis through queue with timeout
-                analysis_contract = analysis_queue.dequeue_analysis_contract()
-                if not analysis_contract:
-                    print("Failed to dequeue analysis contract")
-                    return tuple(empty_components)
-                    
-                # Perform analysis on the processed data
-                analysis_results = perform_analysis(
-                    start_date, 
-                    end_date, 
-                    direction, 
-                    analysis_contract.processed_data
-                )
-                
-                # Update contract with results
-                analysis_contract.analysis_results = analysis_results
-                
-                # Create visualization contract
-                visualization_contract = VisualizationContract(
-                    analysis_results=analysis_contract.analysis_results,
-                    charts={},
-                    tables={},
-                    summaries={},
-                    layout_config={}
-                )
-                
-                # Enqueue visualization contract
-                if not visualization_queue.enqueue_visualization_contract(visualization_contract):
-                    print("Failed to enqueue visualization contract")
-                    return tuple(empty_components)
-                    
-                # Process visualization through queue
-                visualization_contract = visualization_queue.dequeue_visualization_contract()
-                if not visualization_contract:
-                    print("Failed to dequeue visualization contract")
-                    return tuple(empty_components)
-                
-                # Log successful analysis and visualization
-                print(f"Analysis completed successfully for {stored_market} {start_date} to {end_date}")
-                print(f"Analysis queue status: {analysis_queue.get_queue_status()}")
-                print(f"Visualization queue status: {visualization_queue.get_queue_status()}")
-                
+                analysis_results = _run_analysis(ohlc_data_all_years, start_date, end_date, direction)
+                logger.info("Analysis completed for %s %s to %s", stored_market, start_date, end_date)
             except Exception as e:
-                print(f"Error during analysis/visualization: {e}")
-                return tuple(empty_components)
+                logger.error("Error during analysis: %s", e, exc_info=True)
+                return tuple(_empty_analysis_outputs())
 
-            # Prepare data for the yearly analysis table (Unoptimized)
-            yearly_data = analysis_results['yearly_results']
-            print(f"Yearly data type: {type(yearly_data)}")
-            if isinstance(yearly_data, dict):
-                print(f"Yearly data keys: {yearly_data.keys()}")
-            elif isinstance(yearly_data, (list, pd.DataFrame)):
-                print(f"Yearly data length: {len(yearly_data)}")
-                
-            # Create visualization contract
-            visualization_contract = VisualizationContract(
-                analysis_results=analysis_results,
-                charts={},
-                tables={'yearly_analysis': yearly_data},
-                summaries={},
-                layout_config={}
-            )
-            
-            # Enqueue visualization contract
-            if not visualization_queue.enqueue_visualization_contract(visualization_contract):
-                print("Failed to enqueue visualization contract")
-                return tuple(empty_components)
-                
-            # Process visualization through queue
-            visualization_contract = visualization_queue.dequeue_visualization_contract()
-            if not visualization_contract:
-                print("Failed to dequeue visualization contract")
-                return tuple(empty_components)
-                
-            # Get rendered table from contract
-            yearly_analysis_table = visualization_contract.tables.get('yearly_analysis', None)
-            if yearly_analysis_table is None:
-                print("Yearly analysis table not found in visualization contract")
-                return tuple(empty_components)
+            yearly_data = analysis_results.get('yearly_results')
+            if yearly_data is None:
+                logger.error("yearly_results missing from analysis results")
+                return tuple(_empty_analysis_outputs())
 
-            # Prepare summaries for 15 years and 30 years - No-Stop loss returns per year for Summary table
             summary_15 = analysis_results['15_year_summary']
             summary_30 = analysis_results['30_year_summary']
-
-            # Calculate optimal stop-loss and exit for 15 and 30 years
             optimal_results_15y = analysis_results['optimal_results_15y']
             optimal_results_30y = analysis_results['optimal_results_30y']
-
-            # Simulate trades with optimal S/L and exit for 15 and 30 years
             optimal_trades_results_15y = analysis_results['optimal_trades_results_15y']
             optimal_trades_results_30y = analysis_results['optimal_trades_results_30y']
 
-            # D-UP stats
-            dup_distributions = analysis_results['dup_distributions']
-            dup_scatters = analysis_results['dup_scatters']
-            dup_high_vs_prev_high_dist = analysis_results['dup_high_vs_prev_high_dist']
-            dup_low_vs_prev_low_dist = analysis_results['dup_low_vs_prev_low_dist']
-
-            # D-DOWN stats
-            ddown_distributions = analysis_results['ddown_distributions']
-            ddown_scatters = analysis_results['ddown_scatters']
-            ddown_high_vs_prev_high_dist = analysis_results['ddown_high_vs_prev_high_dist']
-            ddown_low_vs_prev_low_dist = analysis_results['ddown_low_vs_prev_low_dist']
-
-            # PD-H stats
-            pdh_distributions = analysis_results['pdh_distributions']
-            pdh_scatters = analysis_results['pdh_scatters']
-            pdh_high_vs_prev_high_dist = analysis_results['pdh_high_vs_prev_high_dist']
-
-            # PD-L stats
-            pdl_distributions = analysis_results['pdl_distributions']
-            pdl_scatters = analysis_results['pdl_scatters']
-            pdl_low_vs_prev_low_dist = analysis_results['pdl_low_vs_prev_low_dist']
-
-            # PD-HL stats
-            pdhl_distributions = analysis_results['pdhl_distributions']
-            pdhl_scatters = analysis_results['pdhl_scatters']
-            pdhl_low_vs_prev_low_dist = analysis_results['pdhl_low_vs_prev_low_dist']
-            pdhl_high_vs_prev_high_dist = analysis_results['pdhl_high_vs_prev_high_dist']
-
-            # PD-H, PD-L and PD-HL stats
-            pdh_pdl_pdhl_distributions = analysis_results['pdh_pdl_pdhl_distributions']
-            pdh_pdl_pdhl_scatters = analysis_results['pdh_pdl_pdhl_scatters']
-            pdh_pdl_pdhl_low_vs_prev_low_dist = analysis_results['pdh_pdl_pdhl_low_vs_prev_low_dist']
-            pdh_pdl_pdhl_high_vs_prev_high_dist = analysis_results['pdh_pdl_pdhl_high_vs_prev_high_dist']
-
-            # Distribution Charts for 15 and 30 years
             distribution_chart_15 = distribution_visualizer.render_return_distribution(yearly_data[:15])
-            optimal_distribution_chart_15 = distribution_visualizer.render_optimized_distribution(optimal_trades_results_15y, years=15)
+            optimal_distribution_chart_15 = distribution_visualizer.render_optimized_distribution(
+                optimal_trades_results_15y, years=15)
             distribution_chart_30 = distribution_visualizer.render_return_distribution(yearly_data[:30], years=30)
-            optimal_distribution_chart_30 = distribution_visualizer.render_optimized_distribution(optimal_trades_results_30y, years=30)
+            optimal_distribution_chart_30 = distribution_visualizer.render_optimized_distribution(
+                optimal_trades_results_30y, years=30)
 
-            # Cumulative return charts for 15 and 30 years
-            (fig_15y, fig_30y, daily_returns_15, daily_returns_30, daily_returns_15_stoploss, daily_returns_30_stoploss,
-             cum_returns_no_stop_15, cum_returns_stop_15, cum_returns_no_stop_30, cum_returns_stop_30) = (
-                create_cumulative_return_charts(start_month, start_day, end_month, end_day, direction,
-                                                ohlc_data_all_years,
-                                                optimal_results_15y, optimal_results_30y
-                                                )
+            (fig_15y, fig_30y,
+             daily_returns_15, daily_returns_30,
+             daily_returns_15_stoploss, daily_returns_30_stoploss,
+             cum_returns_no_stop_15, cum_returns_stop_15,
+             cum_returns_no_stop_30, cum_returns_stop_30) = create_cumulative_return_charts(
+                start_month, start_day, end_month, end_day, direction,
+                ohlc_data_all_years, optimal_results_15y, optimal_results_30y,
             )
 
-            # Calculate risk metrics using cumulative returns
             risk_metrics_15 = MetricsCalculator.calculate_risk_metrics(daily_returns_15, cum_returns_no_stop_15)
             risk_metrics_30 = MetricsCalculator.calculate_risk_metrics(daily_returns_30, cum_returns_no_stop_30)
+            stop_loss_metrics_15 = MetricsCalculator.calculate_risk_metrics(
+                daily_returns_15_stoploss, cum_returns_stop_15)
+            stop_loss_metrics_30 = MetricsCalculator.calculate_risk_metrics(
+                daily_returns_30_stoploss, cum_returns_stop_30)
 
-            # Calculate stop-loss risk metrics
-            stop_loss_metrics_15 = MetricsCalculator.calculate_risk_metrics(daily_returns_15_stoploss, cum_returns_stop_15)
-            stop_loss_metrics_30 = MetricsCalculator.calculate_risk_metrics(daily_returns_30_stoploss, cum_returns_stop_30)
-
-            # Risk metrics and summaries for both scenarios (with and without stop-loss)
             no_stop_loss_color = 'CornFlowerBlue'
             stop_loss_color = 'Salmon'
-
             risk_metrics_summary_15 = update_risk_metrics_summary(risk_metrics_15, no_stop_loss_color)
             risk_metrics_summary_30 = update_risk_metrics_summary(risk_metrics_30, no_stop_loss_color)
             stop_loss_metrics_summary_15 = update_risk_metrics_summary(stop_loss_metrics_15, stop_loss_color)
             stop_loss_metrics_summary_30 = update_risk_metrics_summary(stop_loss_metrics_30, stop_loss_color)
 
-            # Compute day trading stats by year
-            stats_df = analysis_results['day_trading_stats']
-            stats_1_df = analysis_results['day_trading_stats_1']
-            stats_weekday_df = analysis_results['day_trading_stats_weekday']
-            stats_1_weekday_df = analysis_results['day_trading_stats_1_weekday']
+            day_trading_stats, day_trading_stats_1, day_trading_stats_weekday, day_trading_stats_1_weekday = (
+                _prepare_day_trading_tables(analysis_results, table_visualizer)
+            )
 
-            # Separate the 'Total' row and the numeric years for sorting
-            total_row = stats_df[stats_df['year'] == 'Total']
-            stats_df = stats_df[stats_df['year'] != 'Total']
-
-            total_1_row = stats_1_df[stats_1_df['year'] == 'Total']
-            stats_1_df = stats_1_df[stats_1_df['year'] != 'Total']
-
-            # Ensure the 'year' column is integer type for sorting
-            stats_df = stats_df.copy()  # Explicitly create a copy to avoid SettingWithCopyWarning
-            stats_df['year'] = stats_df['year'].astype(int)
-
-            stats_1_df = stats_1_df.copy()  # Explicitly create a copy to avoid SettingWithCopyWarning
-            stats_1_df['year'] = stats_1_df['year'].astype(int)
-
-            # Convert the dictionary to a DataFrame if it's not already one
-            stats_df = pd.DataFrame(stats_df)
-            stats_1_df = pd.DataFrame(stats_1_df)
-
-            # Drop duplicates and sort in one line with chaining
-            stats_df = stats_df.drop_duplicates(subset=['year']).sort_values(by='year', ascending=False)
-            stats_1_df = stats_1_df.drop_duplicates(subset=['year']).sort_values(by='year', ascending=False)
-
-            # Add the 'Total' row back to the end of the DataFrame
-            stats_df = pd.concat([stats_df, total_row], ignore_index=True)
-            stats_1_df = pd.concat([stats_1_df, total_1_row], ignore_index=True)
-
-            # Get table data from visualizer
-            day_trading_stats = table_visualizer.render_day_trading_stats(stats_df)
-            day_trading_stats_1 = table_visualizer.render_day_trading_stats(stats_1_df) 
-            day_trading_stats_weekday = table_visualizer.render_day_trading_stats(stats_weekday_df)
-            day_trading_stats_1_weekday = table_visualizer.render_day_trading_stats(stats_1_weekday_df)
-
-            # Get columns dynamically from the first table
-            columns = [{"name": col, "id": col} for col in stats_df.columns]
+            dup_distributions = analysis_results['dup_distributions']
+            dup_scatters = analysis_results['dup_scatters']
+            dup_high_vs_prev_high_dist = analysis_results['dup_high_vs_prev_high_dist']
+            dup_low_vs_prev_low_dist = analysis_results['dup_low_vs_prev_low_dist']
+            ddown_distributions = analysis_results['ddown_distributions']
+            ddown_scatters = analysis_results['ddown_scatters']
+            ddown_high_vs_prev_high_dist = analysis_results['ddown_high_vs_prev_high_dist']
+            ddown_low_vs_prev_low_dist = analysis_results['ddown_low_vs_prev_low_dist']
+            pdh_distributions = analysis_results['pdh_distributions']
+            pdh_scatters = analysis_results['pdh_scatters']
+            pdh_high_vs_prev_high_dist = analysis_results['pdh_high_vs_prev_high_dist']
+            pdl_distributions = analysis_results['pdl_distributions']
+            pdl_scatters = analysis_results['pdl_scatters']
+            pdl_low_vs_prev_low_dist = analysis_results['pdl_low_vs_prev_low_dist']
+            pdhl_distributions = analysis_results['pdhl_distributions']
+            pdhl_scatters = analysis_results['pdhl_scatters']
+            pdhl_low_vs_prev_low_dist = analysis_results['pdhl_low_vs_prev_low_dist']
+            pdhl_high_vs_prev_high_dist = analysis_results['pdhl_high_vs_prev_high_dist']
+            pdh_pdl_pdhl_distributions = analysis_results['pdh_pdl_pdhl_distributions']
+            pdh_pdl_pdhl_scatters = analysis_results['pdh_pdl_pdhl_scatters']
+            pdh_pdl_pdhl_low_vs_prev_low_dist = analysis_results['pdh_pdl_pdhl_low_vs_prev_low_dist']
+            pdh_pdl_pdhl_high_vs_prev_high_dist = analysis_results['pdh_pdl_pdhl_high_vs_prev_high_dist']
 
             summary_15_text = (
                 f"15-Year Summary:\n"
@@ -1273,54 +1039,49 @@ def register_callbacks(app):
             )
 
             return (
-                yearly_analysis_table,  # Rendered yearly analysis table
+                yearly_data,
                 summary_15_text,
                 summary_30_text,
-                distribution_chart_15,  # Unoptimized distribution chart for 15 years
-                optimal_distribution_chart_15,  # Optimized distribution chart for 15 years
-                distribution_chart_30,  # Unoptimized distribution chart for 30 years
-                optimal_distribution_chart_30,  # Optimized distribution chart for 30 years
-                fig_15y,  # Cumulative return chart for 15 years
-                fig_30y,  # Cumulative return chart for 30 years
+                distribution_chart_15,
+                optimal_distribution_chart_15,
+                distribution_chart_30,
+                optimal_distribution_chart_30,
+                fig_15y,
+                fig_30y,
                 risk_metrics_summary_15,
                 risk_metrics_summary_30,
                 stop_loss_metrics_summary_15,
                 stop_loss_metrics_summary_30,
-                day_trading_stats,  # Day trading stats
+                day_trading_stats,
                 day_trading_stats_1,
-                day_trading_stats_weekday,  # Day trading stats
+                day_trading_stats_weekday,
                 day_trading_stats_1_weekday,
-                # D-UP distribution and scatter plots
                 dup_distributions.get('open_high', {}),
                 dup_distributions.get('open_low', {}),
                 dup_distributions.get('open_close', {}),
-                dup_scatters.get('scatter_1', {}),  # HERE SCATTERS
+                dup_scatters.get('scatter_1', {}),
                 dup_scatters.get('scatter_2', {}),
                 dup_low_vs_prev_low_dist,
                 dup_high_vs_prev_high_dist,
-                # D-DOWN distribution and scatter plots
                 ddown_distributions.get('open_high', {}),
                 ddown_distributions.get('open_low', {}),
                 ddown_distributions.get('open_close', {}),
-                ddown_scatters.get('scatter_1', {}),  # HERE SCATTERS
+                ddown_scatters.get('scatter_1', {}),
                 ddown_scatters.get('scatter_2', {}),
                 ddown_low_vs_prev_low_dist,
                 ddown_high_vs_prev_high_dist,
-                # PD-H distribution and scatter plots
                 pdh_distributions.get('open_high', {}),
                 pdh_distributions.get('open_low', {}),
                 pdh_distributions.get('open_close', {}),
-                pdh_scatters.get('scatter_1', {}),  # HERE SCATTERS
+                pdh_scatters.get('scatter_1', {}),
                 pdh_scatters.get('scatter_2', {}),
                 pdh_high_vs_prev_high_dist,
-                # PD-L distribution and scatter plots
                 pdl_distributions.get('open_high', {}),
                 pdl_distributions.get('open_low', {}),
                 pdl_distributions.get('open_close', {}),
                 pdl_scatters.get('scatter_1', {}),
                 pdl_scatters.get('scatter_2', {}),
                 pdl_low_vs_prev_low_dist,
-                # PD-HL distribution and scatter plots
                 pdhl_distributions.get('open_high', {}),
                 pdhl_distributions.get('open_low', {}),
                 pdhl_distributions.get('open_close', {}),
@@ -1328,7 +1089,6 @@ def register_callbacks(app):
                 pdhl_scatters.get('scatter_2', {}),
                 pdhl_low_vs_prev_low_dist,
                 pdhl_high_vs_prev_high_dist,
-                # PD-H, PD-L, PD-HL distribution and scatter plots
                 pdh_pdl_pdhl_distributions.get('open_high', {}),
                 pdh_pdl_pdhl_distributions.get('open_low', {}),
                 pdh_pdl_pdhl_distributions.get('open_close', {}),
@@ -1382,9 +1142,7 @@ def register_callbacks(app):
         if not isinstance(correlation_180d, pd.DataFrame):
             correlation_180d = pd.DataFrame()
             
-        # Log the data shape and columns for debugging
-        print(f"Correlation data shape: {correlation_180d.shape}")
-        print(f"Correlation columns: {correlation_180d.columns.tolist()}")
+        logger.debug("Correlation data shape=%s columns=%s", correlation_180d.shape, correlation_180d.columns.tolist())
         
         table_data, table_columns = table_visualizer.render_correlation_table(correlation_180d)
         return table_data, table_columns
